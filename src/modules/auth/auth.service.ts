@@ -2,17 +2,17 @@ import ApiError from '../../utils/ApiError';
 import httpstatus from 'http-status';
 import { JwtPayload } from '../../types/jwt.types';
 import jwt from 'jsonwebtoken';
-import config from '@/src/config';
+import config from '../../config';
 import { Profile } from 'passport';
-import { prisma } from '@/lib/prisma';
+import prisma from '../../utils/prisma';
 
 import { AuthUtils } from '../../utils/AuthUtils';
 import { ILoginUser, IRegisterUser } from './auth.types';
-import { UserRole } from '@/lib/prismaEnums';
-import { UserModel } from '@/lib/prismaModels';
+
+import { User, UserRole } from '@prisma/client';
 //
 
-const generateAccessAndRefreshToken = async (user: UserModel) => {
+const generateAccessAndRefreshToken = async (user: User) => {
     try {
         const accessToken = await AuthUtils.generateAccessToken({
             id: user.id,

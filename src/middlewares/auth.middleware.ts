@@ -1,7 +1,7 @@
 import ApiError from '../utils/ApiError';
 import httpstatus from 'http-status';
 import { NextFunction, Response } from 'express';
-import { prisma } from '@/lib/prisma';
+import prisma from '../utils/prisma';
 import { AuthUtils } from '../utils/AuthUtils';
 
 export const verifyJwt =

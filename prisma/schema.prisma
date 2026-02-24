@@ -23,6 +23,49 @@ enum UserRole {
     WAITER
     CHEF
     MANAGER
+    CUSTOMER
+}
+
+// Product Enums
+
+enum ProductStatus {
+  AVAILABLE
+  OUT_OF_STOCK
+  DISCONTINUED
+  DRAFT
+}
+
+enum Category {
+  STARTER
+  MAIN_COURSE
+  DESSERT
+  BEVERAGE
+  SIDE
+}
+
+enum DietaryTag {
+  VEGETARIAN
+  VEGAN
+  HALAL
+  GLUTEN_FREE
+  DAIRY_FREE
+  NUT_FREE
+}
+
+enum VariantType {
+  SMALL
+  MEDIUM
+  LARGE
+  FAMILY
+  SPECIAL
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+  BDT
+  INR
 }
 
 model User {
@@ -39,4 +82,101 @@ model User {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+}
+
+// Restaurant model
+model Restaurant {
+    id          String   @id @default(uuid())
+    name        String
+    tagline     String?
+    description String?
+    location    String?
+    contactInfo String?
+    bannerImage String?
+    
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    
+    // Relations
+    menuProducts MenuProduct[]
+}
+
+
+// Product model
+model MenuProduct {
+  id                    String        @id @default(uuid())
+  restaurantId          String
+  restaurant            Restaurant    @relation(fields: [restaurantId], references: [id])
+
+  productTitle          String
+  productDescription    String?
+  estimatedCookingTime  Int?          // in minutes
+
+  userRating            Float?        // average rating
+  aiRating              Float?
+
+  status                ProductStatus
+  priceCurrency         Currency
+  category              Category
+  dietaryTags           DietaryTag[]
+
+  images                String[]
+
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  // Relations
+  reviews               Review[]
+  ingredients           Ingredient[]
+  variants              Variant[]
+  addons                Addon[]
+
+  @@index([restaurantId])
+}
+
+model Review {
+  id            String      @id @default(uuid())
+  menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
+  menuProductId String
+
+  userId        String
+  rating        Float
+  comment       String?
+
+  createdAt     DateTime    @default(now())
+
+  @@index([menuProductId])
+}
+
+model Ingredient {
+  id            String      @id @default(uuid())
+  name          String
+
+  menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
+  menuProductId String
+
+  @@index([menuProductId])
+}
+
+model Variant {
+  id            String       @id @default(uuid())
+  type          VariantType
+  price         Float
+  discount      Float?
+
+  menuProduct   MenuProduct  @relation(fields: [menuProductId], references: [id])
+  menuProductId String
+
+  @@index([menuProductId])
+}
+
+model Addon {
+  id            String       @id @default(uuid())
+  name          String
+  price         Float
+
+  menuProduct   MenuProduct  @relation(fields: [menuProductId], references: [id])
+  menuProductId String
+
+  @@index([menuProductId])
 }

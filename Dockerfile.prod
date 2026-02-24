@@ -44,8 +44,14 @@ RUN --mount=type=bind,source=package.json,target=package.json \
 
 COPY . .
 
+# Generate Prisma client in the stage whose node_modules will be shipped.
+RUN npx prisma generate
+
 # Run the build script.
 RUN npm run build
+
+# Remove development dependencies while preserving generated Prisma client artifacts.
+RUN npm prune --omit=dev
 
 ################################################################################
 # Create a new stage to run the application with minimal runtime dependencies
@@ -63,7 +69,7 @@ COPY package.json .
 
 # Copy the production dependencies from the deps stage and also
 # the built application from the build stage into the image.
-COPY --from=deps /usr/src/app/node_modules ./node_modules
+COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
 
 

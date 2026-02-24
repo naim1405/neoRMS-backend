@@ -49,6 +49,9 @@ RUN npx prisma generate
 # Run the build script.
 RUN npm run build
 
+# Remove development dependencies while preserving generated Prisma client artifacts.
+RUN npm prune --omit=dev
+
 ################################################################################
 # Create a new stage to run the application with minimal runtime dependencies
 # where the necessary files are copied from the build stage.
@@ -65,7 +68,7 @@ COPY package.json .
 
 # Copy the production dependencies from the deps stage and also
 # the built application from the build stage into the image.
-COPY --from=deps /usr/src/app/node_modules ./node_modules
+COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
 COPY --from=build /usr/src/app/.env ./.env
 

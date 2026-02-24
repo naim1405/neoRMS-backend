@@ -25,6 +25,27 @@ enum UserRole {
     MANAGER
 }
 
+enum OrderStatus {
+    PENDING
+    CONFIRMED
+    PREPARING
+    READY
+    DELIVERED
+    CANCELLED
+}
+
+enum PaymentStatus {
+    PENDING
+    COMPLETED
+    FAILED
+}
+
+enum PaymentMethod {
+    CASH
+    CARD
+    ONLINE
+}
+
 model User {
     id              String   @id @default(uuid())
     email           String   @unique
@@ -37,6 +58,49 @@ model User {
     refreshToken    String?
     verificationOTP Int?
 
+    orders          Order[] 
+
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+}
+
+
+model Order {
+    id                      String        @id @default(uuid())
+    userId                  String
+    user                    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    status                  OrderStatus   @default(PENDING)
+    totalPrice              Float
+
+    paymentMethod           PaymentMethod?
+    paymentStatus           PaymentStatus @default(PENDING)
+
+    notes                   String?
+    estimatedDeliveryTimeMinutes   Int?        
+    deliveryAddress         String?
+
+    items                   OrderItem[]
+
+    createdAt               DateTime      @default(now())
+    updatedAt               DateTime      @updatedAt
+
+    @@index([userId])
+    @@index([status])
+}
+
+model OrderItem {
+    id          String  @id @default(uuid())
+    orderId     String
+    order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+    menuItemId  String 
+    name        String
+    quantity    Int
+    price       Float
+    notes       String?
+
+    createdAt   DateTime @default(now())
+
+    @@index([orderId])
 }

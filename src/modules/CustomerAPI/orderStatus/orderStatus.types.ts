@@ -1,8 +1,4 @@
-// Type definitions for Order Status-related requests and responses
-
-// NOTE: Order model needs to be added to Prisma schema
-// Expected fields: id, userId, status, totalPrice, items[], createdAt, updatedAt
-// Status enum should include: PENDING, CONFIRMED, PREPARING, READY, DELIVERED, CANCELLED
+// Type definitions
 
 export enum OrderStatus {
     PENDING = 'PENDING',

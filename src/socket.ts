@@ -2,7 +2,7 @@ import { Server } from 'socket.io';
 import cookie from 'cookie';
 import ApiError from './utils/ApiError';
 import httpstatus from 'http-status';
-import { prisma } from './lib/prisma';
+import prisma from './utils/prisma';
 import { AuthUtils } from './utils/AuthUtils';
 import { ChatEventEnum } from './constants';
 import { Request } from 'express';

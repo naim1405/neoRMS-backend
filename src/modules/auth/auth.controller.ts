@@ -5,7 +5,7 @@ import httpstatus from 'http-status';
 import { JwtPayload } from '../../types/jwt.types';
 import { Profile } from 'passport';
 import { authService } from './auth.service';
-import { UserRole } from '@/lib/prismaEnums';
+import { UserRole } from '@prisma/client';
 
 const cookieOptions: any = {
     httpOnly: true,

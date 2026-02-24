@@ -48,9 +48,22 @@ const getAllRestaurants = async () => {
     return restaurants;
 };
 
+const getRestaurantsByUserId = async (userId: string) => {
+    const associated = await prisma.associatedRestaurant.findMany({
+        where: { userId },
+        include: {
+            restaurant: {
+                include: { menuProducts: true },
+            },
+        },
+    });
+    return associated.map(a => a.restaurant);
+};
+
 export const restaurantService = {
     createRestaurant,
     updateRestaurant,
     getRestaurantById,
     getAllRestaurants,
+    getRestaurantsByUserId,
 };

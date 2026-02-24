@@ -24,6 +24,7 @@ enum UserRole {
     CHEF
     MANAGER
     CUSTOMER
+    OWNER
 }
 
 // Product Enums
@@ -68,6 +69,7 @@ enum Currency {
   INR
 }
 
+// User model
 model User {
     id              String   @id @default(uuid())
     email           String   @unique
@@ -82,6 +84,25 @@ model User {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    // Relations
+    associatedRestaurants AssociatedRestaurant[]
+    reviews               Review[]
+}
+
+model AssociatedRestaurant {
+    id            String     @id @default(uuid())
+    userId        String
+    restaurantId  String
+
+    user          User       @relation(fields: [userId], references: [id])
+    restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    @@index([userId])
+    @@index([restaurantId])
 }
 
 // Restaurant model
@@ -98,7 +119,8 @@ model Restaurant {
     updatedAt   DateTime @updatedAt
     
     // Relations
-    menuProducts MenuProduct[]
+    menuProducts          MenuProduct[]
+    associatedRestaurants AssociatedRestaurant[]
 }
 
 
@@ -140,12 +162,14 @@ model Review {
   menuProductId String
 
   userId        String
+  user          User        @relation(fields: [userId], references: [id])
   rating        Float
   comment       String?
 
   createdAt     DateTime    @default(now())
 
   @@index([menuProductId])
+  @@index([userId])
 }
 
 model Ingredient {

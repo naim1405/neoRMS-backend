@@ -45,9 +45,22 @@ const getAllRestaurants = catchAsync(async (req, res) => {
     });
 });
 
+const getRestaurantsByUserId = catchAsync(async (req, res) => {
+    const result = await restaurantService.getRestaurantsByUserId(
+        req.params.userId as string,
+    );
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'User restaurants fetched successfully',
+        data: result,
+    });
+});
+
 export const restaurantController = {
     createRestaurant,
     updateRestaurant,
     getRestaurantById,
     getAllRestaurants,
+    getRestaurantsByUserId,
 };

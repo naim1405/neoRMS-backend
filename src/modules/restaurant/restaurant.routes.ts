@@ -24,6 +24,7 @@ router.patch(
 );
 
 // Public routes - no auth needed
+router.get('/user/:userId', restaurantController.getRestaurantsByUserId);
 router.get('/', restaurantController.getAllRestaurants);
 router.get('/:id', restaurantController.getRestaurantById);
 

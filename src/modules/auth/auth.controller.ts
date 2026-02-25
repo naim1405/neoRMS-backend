@@ -5,29 +5,23 @@ import httpstatus from 'http-status';
 import { JwtPayload } from '../../types/jwt.types';
 import { Profile } from 'passport';
 import { authService } from './auth.service';
-import { UserRole } from '@prisma/client';
+import { portalRoleMap } from './auth.types';
 
 const cookieOptions: any = {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
 };
-const registerUser = catchAsync(async (req, res) => {
-    const result = await authService.registerUser(req.body, UserRole.MANAGER);
-    const { accessToken } = result;
-
-    res.cookie('accessToken', accessToken, cookieOptions);
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: 'User registered successfully',
-        data: null,
-    });
-});
 
 const loginUser = catchAsync(async (req, res) => {
-    const result = await authService.loginUser(req.body);
+    let portal = req.params.portal as string;
+    portal = portal.toLowerCase();
+    const allowedRoles = portalRoleMap[portal];
+
+    if (!allowedRoles) {
+        throw new ApiError(httpstatus.BAD_REQUEST, 'Invalid portal');
+    }
+    const result = await authService.loginUser(req.body, allowedRoles);
     const { accessToken, refreshToken } = result;
 
     res.cookie('refreshToken', refreshToken, cookieOptions);
@@ -125,26 +119,10 @@ const googleAuthSuccess = catchAsync(async (req, res) => {
     });
 });
 
-const registerAdmin = catchAsync(async (req, res) => {
-    const result = await authService.registerUser(req.body, UserRole.MANAGER);
-    const { accessToken } = result;
-
-    res.cookie('accessToken', accessToken, cookieOptions);
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: 'Admin registered successfully',
-        data: null,
-    });
-});
-
 export const authController = {
-    registerUser,
     loginUser,
     logoutUser,
     refreshAccessToken,
     verifyEmail,
     googleAuthSuccess,
-    registerAdmin,
 };

@@ -104,6 +104,44 @@ const deleteOrder = catchAsync(async (req: any, res) => {
     });
 });
 
+// Create new order
+const createOrder = catchAsync(async (req: any, res) => {
+    const user = req.user as JwtPayload;
+    const orderData = req.body;
+
+    const result = await orderStatusService.createOrder(user.id, orderData);
+
+    sendResponse(res, {
+        statusCode: 201,
+        success: true,
+        message: 'Order created successfully',
+        data: result,
+    });
+});
+
+// Get orders by status
+const getOrderByStatus = catchAsync(async (req: any, res) => {
+    const user = req.user as JwtPayload;
+    const { status } = req.params;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string) || 1;
+
+    const result = await orderStatusService.getOrderByStatus(
+        user.id,
+        status as any,
+        limit,
+        page,
+    );
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Orders retrieved by status successfully',
+        meta: result.meta,
+        data: result.data,
+    });
+});
+
 export const orderStatusController = {
     getUserOrders,
     getOrderStats,
@@ -111,4 +149,6 @@ export const orderStatusController = {
     getOrderById,
     updateOrder,
     deleteOrder,
+    createOrder,
+    getOrderByStatus,
 };

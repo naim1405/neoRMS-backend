@@ -72,10 +72,56 @@ const updateOrderSchema = z.object({
     ),
 });
 
+// Create order
+const createOrderSchema = z.object({
+    body: z.object({
+        items: z.array(
+            z.object({
+                menuItemId: z.string().uuid('Invalid menu item ID'),
+                name: z.string().min(1, 'Item name is required'),
+                quantity: z.number().int().positive('Quantity must be positive'),
+                price: z.number().positive('Price must be positive'),
+                notes: z.string().optional(),
+            })
+        ).min(1, 'At least one item is required'),
+        totalPrice: z.number().positive('Total price must be positive'),
+        paymentMethod: z.string().optional(),
+        notes: z.string().optional(),
+        estimatedDeliveryTime: z.number().int().positive().optional(),
+        deliveryAddress: z.string().optional(),
+    }),
+});
+
+// Get order by status
+const getOrderByStatusSchema = z.object({
+    params: z.object({
+        status: z.enum([
+            'PENDING',
+            'CONFIRMED',
+            'PREPARING',
+            'READY',
+            'DELIVERED',
+            'CANCELLED',
+        ]),
+    }),
+    query: z.object({
+        limit: z.string().optional().refine(
+            (val) => !val || /^\d+$/.test(val),
+            'Limit must be a number'
+        ),
+        page: z.string().optional().refine(
+            (val) => !val || /^\d+$/.test(val),
+            'Page must be a number'
+        ),
+    }),
+});
+
 export const orderStatusValidation = {
     getOrderByIdSchema,
     getUserOrdersSchema,
     trackOrderSchema,
     deleteOrderSchema,
     updateOrderSchema,
+    createOrderSchema,
+    getOrderByStatusSchema,
 };

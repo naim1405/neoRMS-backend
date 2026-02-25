@@ -8,12 +8,30 @@ const router = express.Router();
 
 // STATIC ROUTES (defined before dynamic routes with :id)
 
+// Create a new order
+// POST /orders
+router.post(
+    '/',
+    verifyJwt(),
+    validateRequest(orderStatusValidation.createOrderSchema),
+    orderStatusController.createOrder,
+);
+
 // Get order statistics
 // GET /orders/stats
 router.get(
     '/stats',
     verifyJwt(),
     orderStatusController.getOrderStats,
+);
+
+// Get orders by status
+// GET /orders/status/:status?limit=10&page=1
+router.get(
+    '/status/:status',
+    verifyJwt(),
+    validateRequest(orderStatusValidation.getOrderByStatusSchema),
+    orderStatusController.getOrderByStatus,
 );
 
 // Track order status in real-time

@@ -302,6 +302,93 @@ const getOrderStep = (status: OrderStatus): number => {
     return steps[status] || 0;
 };
 
+/**
+ * Create a new order
+ */
+const createOrder = async (
+    userId: string,
+    orderData: any,
+): Promise<IOrder> => {
+    try {
+        const order = await (prisma as any).order.create({
+            data: {
+                userId,
+                status: OrderStatus.PENDING,
+                totalPrice: orderData.totalPrice,
+                paymentMethod: orderData.paymentMethod,
+                notes: orderData.notes,
+                estimatedDeliveryTime: orderData.estimatedDeliveryTime,
+                deliveryAddress: orderData.deliveryAddress,
+                items: {
+                    create: orderData.items,
+                },
+            },
+            include: {
+                items: true,
+            },
+        });
+
+        return order;
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'Failed to create order',
+        );
+    }
+};
+
+/**
+ * Get all orders for a user by status with pagination
+ */
+const getOrderByStatus = async (
+    userId: string,
+    status: OrderStatus,
+    limit: number = 10,
+    page: number = 1,
+) => {
+    try {
+        const skip = (page - 1) * limit;
+
+        const orders = await (prisma as any).order.findMany({
+            where: {
+                userId,
+                status,
+            },
+            include: {
+                items: true,
+            },
+            take: limit,
+            skip: skip,
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+
+        const total = await (prisma as any).order.count({
+            where: {
+                userId,
+                status,
+            },
+        });
+
+        return {
+            data: orders,
+            meta: {
+                page,
+                limit,
+                total,
+            },
+        };
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'Failed to fetch orders by status',
+        );
+    }
+};
+
 export const orderStatusService = {
     getUserOrders,
     getOrderStats,
@@ -309,4 +396,6 @@ export const orderStatusService = {
     getOrderById,
     updateOrder,
     deleteOrder,
+    createOrder,
+    getOrderByStatus,
 };

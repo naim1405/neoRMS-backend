@@ -8,7 +8,7 @@ import { authValidation } from './auth.validation';
 const router = express.Router();
 
 router.post(
-    '/login',
+    '/login/:portal',
     validateRequest(authValidation.loginSchema),
     authController.loginUser,
 );

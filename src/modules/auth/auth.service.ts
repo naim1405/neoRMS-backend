@@ -7,7 +7,7 @@ import { Profile } from 'passport';
 import prisma from '../../utils/prisma';
 
 import { AuthUtils } from '../../utils/AuthUtils';
-import { ILoginUser, IRegisterUser } from './auth.types';
+import { ILoginUser } from './auth.types';
 
 import { User, UserRole } from '@prisma/client';
 //
@@ -42,12 +42,15 @@ const generateAccessAndRefreshToken = async (user: User) => {
     }
 };
 
-const loginUser = async (payload: ILoginUser) => {
+const loginUser = async (payload: ILoginUser, allowedRoles: UserRole[]) => {
     const { email, password } = payload;
 
     const user = await prisma.user.findUnique({
         where: {
             email: email,
+            role: {
+                in: allowedRoles,
+            },
         },
     });
     if (!user) {

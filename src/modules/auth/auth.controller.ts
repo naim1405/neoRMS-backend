@@ -5,7 +5,7 @@ import httpstatus from 'http-status';
 import { JwtPayload } from '../../types/jwt.types';
 import { Profile } from 'passport';
 import { authService } from './auth.service';
-import { UserRole } from '@prisma/client';
+import { portalRoleMap } from './auth.types';
 
 const cookieOptions: any = {
     httpOnly: true,
@@ -14,7 +14,14 @@ const cookieOptions: any = {
 };
 
 const loginUser = catchAsync(async (req, res) => {
-    const result = await authService.loginUser(req.body);
+    let portal = req.params.portal as string;
+    portal = portal.toLowerCase();
+    const allowedRoles = portalRoleMap[portal];
+
+    if (!allowedRoles) {
+        throw new ApiError(httpstatus.BAD_REQUEST, 'Invalid portal');
+    }
+    const result = await authService.loginUser(req.body, allowedRoles);
     const { accessToken, refreshToken } = result;
 
     res.cookie('refreshToken', refreshToken, cookieOptions);

@@ -5,12 +5,13 @@ import httpstatus from 'http-status';
 import prisma from '../utils/prisma';
 import { AuthUtils } from '../utils/AuthUtils';
 import { ChatEventEnum } from '../constants';
-import { Socket } from '../types/socket.types';
+import { Socket } from './socket.types';
 import { verifyJwt } from '../middlewares/socket.middleware';
 import { UserRole } from '@prisma/client';
+import { SOCKET_NAMESPACES } from '.';
 
 export const setupWaiterSocketNamespace = (io: Server) => {
-    const waiterSocket = io.of('/waiter');
+    const waiterSocket = io.of(SOCKET_NAMESPACES.WAITER);
     // Apply the JWT verification middleware to the waiter namespace
     // waiterSocket.use(verifyJwt(UserRole.WAITER));
     //
@@ -29,7 +30,6 @@ export const setupWaiterSocketNamespace = (io: Server) => {
         //test
         socket.on('test', async data => {
             console.log('Received test event with data:', data);
-            const roomMembers = await waiterSocket.in(room).fetchSockets();
             waiterSocket.to(room).emit('testResponse', {
                 message: 'Test event received successfully!',
                 receivedData: data,

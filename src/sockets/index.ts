@@ -6,7 +6,7 @@ import prisma from '../utils/prisma';
 import { AuthUtils } from '../utils/AuthUtils';
 import { ChatEventEnum } from '../constants';
 import { Request } from 'express';
-import { Socket } from '../types/socket.types';
+import { Socket } from './socket.types';
 import { setupWaiterSocketNamespace } from './waiterSocket';
 
 // const initializeScoketIO = (io: Server) => {
@@ -76,18 +76,26 @@ const initializeScoketIO = (io: Server) => {
     setupWaiterSocketNamespace(io);
 };
 
+enum SOCKET_NAMESPACES {
+    WAITER = '/waiter',
+    CHEF = '/chef',
+    CUSTOMER = '/customer',
+}
+
 const emitSocketEvent = (
     req: Request,
     roomId: string,
     event: string,
     payload: any,
+    socketNamespace: SOCKET_NAMESPACES,
 ) => {
-    const i: Server = req.app.get('io');
+    const io: Server = req.app.get('io');
     // console.log('🚀 i  : ', i);
     // console.log('🚀 roomId : ', roomId);
     // console.log('🚀 event : ', event);
     // console.log('🚀 payload : ', payload);
-    req.app.get('io').in(roomId).emit(event, payload);
+    // console.log('🚀 namespace: ', socketNamespace);
+    io.of(socketNamespace).to(roomId).emit(event, payload);
 };
 
-export { initializeScoketIO, emitSocketEvent };
+export { initializeScoketIO, emitSocketEvent, SOCKET_NAMESPACES };

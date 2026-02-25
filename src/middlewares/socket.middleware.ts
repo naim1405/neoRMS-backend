@@ -1,6 +1,6 @@
 import httpstatus from 'http-status';
 import prisma from '../utils/prisma';
-import { Socket } from '../types/socket.types';
+import { Socket } from '../sockets/socket.types';
 import { AuthUtils } from '../utils/AuthUtils';
 
 export const verifyJwt =

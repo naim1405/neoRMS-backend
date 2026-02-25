@@ -2,7 +2,7 @@ import config from './config';
 import app from './app';
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
-import { initializeScoketIO } from './socket';
+import { initializeScoketIO } from './sockets';
 import { verifyJwt } from './middlewares/socket.middleware';
 
 const server = createServer(app);

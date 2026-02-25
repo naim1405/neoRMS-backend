@@ -6,51 +6,61 @@ import { orderStatusValidation } from './orderStatus.validation';
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(verifyJwt());
-
-// Get all orders for the current user with optional filtering
-// GET /api/customer/orders?limit=10&page=1&status=PENDING
-router.get(
-    '/',
-    validateRequest(orderStatusValidation.getUserOrdersSchema),
-    orderStatusController.getUserOrders,
-);
+// STATIC ROUTES (defined before dynamic routes with :id)
 
 // Get order statistics
-// GET /api/customer/orders/stats
-router.get('/stats', orderStatusController.getOrderStats);
+// GET /orders/stats
+router.get(
+    '/stats',
+    verifyJwt(),
+    orderStatusController.getOrderStats,
+);
 
-// Track order status (real-time)
-// GET /api/customer/orders/track/:orderId
+// Track order status in real-time
+// GET /orders/track/:orderId
 router.get(
     '/track/:orderId',
+    verifyJwt(),
     validateRequest(orderStatusValidation.trackOrderSchema),
     orderStatusController.trackOrder,
 );
 
-// Get order by ID
-// GET /api/customer/orders/:orderId
+// DYNAMIC ROUTES
+
+// Get all orders for the current user with optional filtering
+// GET /orders?limit=10&page=1&status=PENDING
+router.get(
+    '/',
+    verifyJwt(),
+    validateRequest(orderStatusValidation.getUserOrdersSchema),
+    orderStatusController.getUserOrders,
+);
+
+// Get single order by ID
+// GET /orders/:orderId
 router.get(
     '/:orderId',
+    verifyJwt(),
     validateRequest(orderStatusValidation.getOrderByIdSchema),
     orderStatusController.getOrderById,
 );
 
-// delete order
-// DELETE /api/customer/orders/:orderId
-router.delete(
-    '/:orderId',
-    validateRequest(orderStatusValidation.deleteOrderSchema),
-    orderStatusController.deleteOrder,
-);
-
-// update order
-// PUT /api/customer/orders/:orderId
+// Update order
+// PUT /orders/:orderId
 router.put(
     '/:orderId',
+    verifyJwt(),
     validateRequest(orderStatusValidation.updateOrderSchema),
     orderStatusController.updateOrder,
+);
+
+// Delete order
+// DELETE /orders/:orderId
+router.delete(
+    '/:orderId',
+    verifyJwt(),
+    validateRequest(orderStatusValidation.deleteOrderSchema),
+    orderStatusController.deleteOrder,
 );
 
 export const orderRoutes = router;

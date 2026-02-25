@@ -1,42 +1,12 @@
 import ApiError from '../../utils/ApiError';
 import httpStatus from 'http-status';
 import prisma from '../../utils/prisma';
-import { IOrder, OrderStatus } from './orderStatus.types';
-import { JwtPayload } from '../../types/jwt.types';
+import { IOrder, IUpdateOrderRequest, IOrderStats } from './orderStatus.types';
+import { OrderStatus } from '@prisma/client';
 
-const getOrderById = async (orderId: string, userId: string) => {
-    try {
-        const order = await (prisma as any).order.findUnique({
-            where: {
-                id: orderId,
-            },
-            include: {
-                items: true, // NOTE: Assuming Order has items relation as must be included
-            },
-        });
-
-        if (!order) {
-            throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
-        }
-
-        // Verify that the order belongs to the user
-        if (order.userId !== userId) {
-            throw new ApiError(
-                httpStatus.FORBIDDEN,
-                'You do not have permission to view this order',
-            );
-        }
-
-        return order;
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(
-            httpStatus.INTERNAL_SERVER_ERROR,
-            'Failed to fetch order',
-        );
-    }
-};
-
+/**
+ * Get all orders for a user with pagination and optional status filter
+ */
 const getUserOrders = async (
     userId: string,
     limit: number = 10,
@@ -59,7 +29,7 @@ const getUserOrders = async (
             skip: skip,
             where: whereClause,
             include: {
-                items: true, // NOTE: Assuming Order has items relation
+                items: true,
             },
             orderBy: {
                 createdAt: 'desc',
@@ -79,6 +49,7 @@ const getUserOrders = async (
             },
         };
     } catch (error) {
+        if (error instanceof ApiError) throw error;
         throw new ApiError(
             httpStatus.INTERNAL_SERVER_ERROR,
             'Failed to fetch user orders',
@@ -86,6 +57,54 @@ const getUserOrders = async (
     }
 };
 
+/**
+ * Get statistics for a user's orders (total, pending, completed, cancelled counts)
+ */
+const getOrderStats = async (userId: string): Promise<IOrderStats> => {
+    try {
+        const totalOrders = await (prisma as any).order.count({
+            where: { userId: userId },
+        });
+
+        const pendingOrders = await (prisma as any).order.count({
+            where: {
+                userId: userId,
+                status: { in: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING] },
+            },
+        });
+
+        const completedOrders = await (prisma as any).order.count({
+            where: {
+                userId: userId,
+                status: OrderStatus.DELIVERED,
+            },
+        });
+
+        const cancelledOrders = await (prisma as any).order.count({
+            where: {
+                userId: userId,
+                status: OrderStatus.CANCELLED,
+            },
+        });
+
+        return {
+            totalOrders,
+            pendingOrders,
+            completedOrders,
+            cancelledOrders,
+        };
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'Failed to fetch order statistics',
+        );
+    }
+};
+
+/**
+ * Track order status in real-time with current progress step
+ */
 const trackOrder = async (orderId: string, userId: string) => {
     try {
         const order = await (prisma as any).order.findUnique({
@@ -108,7 +127,6 @@ const trackOrder = async (orderId: string, userId: string) => {
             );
         }
 
-        // Return order
         return {
             orderId: order.id,
             status: order.status,
@@ -125,9 +143,155 @@ const trackOrder = async (orderId: string, userId: string) => {
     }
 };
 
-// Helper function to get order progress step
-const getOrderStep = (status: string): number => {
-    const steps: { [key: string]: number } = {
+/**
+ * Get single order by ID with authorization check
+ */
+const getOrderById = async (orderId: string, userId: string): Promise<IOrder> => {
+    try {
+        const order = await (prisma as any).order.findUnique({
+            where: {
+                id: orderId,
+            },
+            include: {
+                items: true,
+            },
+        });
+
+        if (!order) {
+            throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
+        }
+
+        if (order.userId !== userId) {
+            throw new ApiError(
+                httpStatus.FORBIDDEN,
+                'You do not have permission to view this order',
+            );
+        }
+
+        return order;
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'Failed to fetch order',
+        );
+    }
+};
+
+/**
+ * Update order with authorization and status transition validation
+ */
+const updateOrder = async (
+    orderId: string,
+    userId: string,
+    updatedData: IUpdateOrderRequest,
+): Promise<IOrder> => {
+    try {
+        const order = await (prisma as any).order.findUnique({
+            where: {
+                id: orderId,
+            },
+            include: {
+                items: true,
+            },
+        });
+
+        if (!order) {
+            throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
+        }
+
+        if (order.userId !== userId) {
+            throw new ApiError(
+                httpStatus.FORBIDDEN,
+                'You do not have permission to update this order',
+            );
+        }
+
+        // Validate status transitions if status is being updated
+        if (updatedData.status) {
+            const validTransitions: { [key: string]: OrderStatus[] } = {
+                [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+                [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+                [OrderStatus.PREPARING]: [OrderStatus.READY],
+                [OrderStatus.READY]: [OrderStatus.DELIVERED],
+                [OrderStatus.DELIVERED]: [],
+                [OrderStatus.CANCELLED]: [],
+            };
+
+            const allowedTransitions = validTransitions[order.status] || [];
+            if (!allowedTransitions.includes(updatedData.status)) {
+                throw new ApiError(
+                    httpStatus.BAD_REQUEST,
+                    `Invalid status transition from ${order.status} to ${updatedData.status}`,
+                );
+            }
+        }
+
+        const updatedOrder = await (prisma as any).order.update({
+            where: {
+                id: orderId,
+            },
+            data: updatedData,
+            include: {
+                items: true,
+            },
+        });
+
+        return updatedOrder;
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'Failed to update order',
+        );
+    }
+};
+
+/**
+ * Delete order with ownership verification
+ */
+const deleteOrder = async (orderId: string, userId: string) => {
+    try {
+        const order = await (prisma as any).order.findUnique({
+            where: {
+                id: orderId,
+            },
+        });
+
+        if (!order) {
+            throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
+        }
+
+        // Only allow deletion if user is the owner
+        if (order.userId !== userId) {
+            throw new ApiError(
+                httpStatus.FORBIDDEN,
+                'You do not have permission to delete this order',
+            );
+        }
+
+        // Delete order (cascading delete handled by Prisma schema)
+        await (prisma as any).order.delete({
+            where: {
+                id: orderId,
+            },
+        });
+
+        return { id: orderId };
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'Failed to delete order',
+        );
+    }
+};
+
+/**
+ * Helper function to convert order status to progress step (0-5)
+ */
+const getOrderStep = (status: OrderStatus): number => {
+    const steps: { [key in OrderStatus]: number } = {
         [OrderStatus.PENDING]: 1,
         [OrderStatus.CONFIRMED]: 2,
         [OrderStatus.PREPARING]: 3,
@@ -138,50 +302,11 @@ const getOrderStep = (status: string): number => {
     return steps[status] || 0;
 };
 
-const getOrderStats = async (userId: string) => {
-    try {
-        const totalOrders = await (prisma as any).order.count({
-            where: { userId: userId },
-        });
-
-        const pendingOrders = await (prisma as any).order.count({
-            where: {
-                userId: userId,
-                status: { in: ['PENDING', 'CONFIRMED', 'PREPARING'] },
-            },
-        });
-
-        const completedOrders = await (prisma as any).order.count({
-            where: {
-                userId: userId,
-                status: 'DELIVERED',
-            },
-        });
-
-        const cancelledOrders = await (prisma as any).order.count({
-            where: {
-                userId: userId,
-                status: 'CANCELLED',
-            },
-        });
-
-        return {
-            totalOrders,
-            pendingOrders,
-            completedOrders,
-            cancelledOrders,
-        };
-    } catch (error) {
-        throw new ApiError(
-            httpStatus.INTERNAL_SERVER_ERROR,
-            'Failed to fetch order statistics',
-        );
-    }
-};
-
 export const orderStatusService = {
-    getOrderById,
     getUserOrders,
-    trackOrder,
     getOrderStats,
+    trackOrder,
+    getOrderById,
+    updateOrder,
+    deleteOrder,
 };

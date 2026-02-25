@@ -201,7 +201,7 @@ model RestaurantInventory {
   restaurantId      String
   ingredientId      String
   availableQuantity Float
-  thresholdQuantity Float
+  thresholdQuantity Float?
 
   restaurant        Restaurant          @relation(fields: [restaurantId], references: [id])
   ingredient        InventoryIngredient @relation(fields: [ingredientId], references: [id])

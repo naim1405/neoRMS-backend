@@ -14,7 +14,8 @@ services:
     environment:
       NODE_ENV: development
     ports:
-      - 5005:5000
+      - 5000:5000
+      - 5050:5555
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
@@ -30,7 +31,7 @@ services:
     restart: always
     user: postgres
     volumes:
-      - db-data:/var/lib/postgresql
+      - db-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=neo_rms
       - POSTGRES_PASSWORD=supersecurepassword123

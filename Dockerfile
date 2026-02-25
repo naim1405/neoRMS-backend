@@ -6,7 +6,7 @@
 
 # Want to help us make this template better? Share your feedback here: https://forms.gle/ybq9Krt8jtBL3iCk7
 
-ARG NODE_VERSION=20
+ARG NODE_VERSION=24
 
 ################################################################################
 # Use node image for base image for all stages.
@@ -43,7 +43,6 @@ RUN --mount=type=bind,source=package.json,target=package.json \
 # Copy the rest of the source files into the image.
 COPY . .
 
-# Run the prisma
 RUN npx prisma generate
 
 # Run the build script.
@@ -60,8 +59,6 @@ FROM base as final
 # Use production node environment by default.
 ENV NODE_ENV production
 
-# Run the application as a non-root user.
-USER node
 
 # Copy package.json so that package manager commands can be used.
 COPY package.json .
@@ -71,10 +68,15 @@ COPY package.json .
 COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
 COPY --from=build /usr/src/app/.env ./.env
+COPY --from=build /usr/src/app/prisma ./prisma
 
+
+# Run the application as a non-root user.
+RUN chown -R node:node /usr/src/app
+USER node
 
 # Expose the port that the application listens on.
 EXPOSE 5000
 
 # Run the application.
-CMD npm run start
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]

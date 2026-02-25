@@ -42,45 +42,6 @@ const generateAccessAndRefreshToken = async (user: User) => {
     }
 };
 
-const registerUser = async (payload: IRegisterUser, role: UserRole) => {
-    const existingUser = await prisma.user.findUnique({
-        where: {
-            email: payload.email,
-        },
-    });
-
-    if (existingUser && !existingUser.isVerified) {
-        throw new ApiError(
-            httpstatus.CONFLICT,
-            'Please verify your email to complete registration',
-        );
-    }
-    if (existingUser) {
-        throw new ApiError(httpstatus.CONFLICT, 'User already exists');
-    }
-    const otp = Math.floor(1000 + Math.random() * 9000); // Generate a 4-digit OTP
-    const hashaedPassword = await AuthUtils.hashPassword(payload.password);
-
-    const user = await prisma.user.create({
-        data: {
-            email: payload.email,
-            fullName: payload.fullName,
-            role: role,
-            password: hashaedPassword,
-            avatar: payload.avatar,
-            verificationOTP: otp,
-            isVerified: true, // TODO: set to false in production
-        },
-    });
-
-    //TODO: Send verification email here with otp
-    console.log('🚀 otp : ', otp);
-
-    const { accessToken } = await generateAccessAndRefreshToken(user);
-
-    return { accessToken };
-};
-
 const loginUser = async (payload: ILoginUser) => {
     const { email, password } = payload;
 
@@ -238,7 +199,6 @@ const googleAuthSuccess = async (profile: Profile) => {
 };
 
 export const authService = {
-    registerUser,
     loginUser,
     logoutUser,
     refreshAccessToken,

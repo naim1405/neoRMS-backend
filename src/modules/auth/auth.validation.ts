@@ -7,15 +7,6 @@ const loginSchema = z.object({
     }),
 });
 
-const registerSchema = z.object({
-    body: z.object({
-        email: z.string(),
-        fullName: z.string(),
-        avatar: z.string().optional(),
-        password: z.string(),
-    }),
-});
-
 const emailVerificationSchema = z.object({
     body: z.object({
         otp: z.number(),
@@ -24,6 +15,5 @@ const emailVerificationSchema = z.object({
 
 export const authValidation = {
     loginSchema,
-    registerSchema,
     emailVerificationSchema,
 };

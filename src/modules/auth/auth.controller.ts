@@ -12,19 +12,6 @@ const cookieOptions: any = {
     secure: true,
     sameSite: 'none',
 };
-const registerUser = catchAsync(async (req, res) => {
-    const result = await authService.registerUser(req.body, UserRole.MANAGER);
-    const { accessToken } = result;
-
-    res.cookie('accessToken', accessToken, cookieOptions);
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: 'User registered successfully',
-        data: null,
-    });
-});
 
 const loginUser = catchAsync(async (req, res) => {
     const result = await authService.loginUser(req.body);
@@ -125,26 +112,10 @@ const googleAuthSuccess = catchAsync(async (req, res) => {
     });
 });
 
-const registerAdmin = catchAsync(async (req, res) => {
-    const result = await authService.registerUser(req.body, UserRole.MANAGER);
-    const { accessToken } = result;
-
-    res.cookie('accessToken', accessToken, cookieOptions);
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: 'Admin registered successfully',
-        data: null,
-    });
-});
-
 export const authController = {
-    registerUser,
     loginUser,
     logoutUser,
     refreshAccessToken,
     verifyEmail,
     googleAuthSuccess,
-    registerAdmin,
 };

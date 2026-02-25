@@ -45,7 +45,6 @@ router.delete(
     orderStatusController.deleteOrder,
 );
 
-
 // update order
 // PUT /api/customer/orders/:orderId
 router.put(
@@ -54,4 +53,4 @@ router.put(
     orderStatusController.updateOrder,
 );
 
-export default router;
+export const orderRoutes = router;

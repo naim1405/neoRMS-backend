@@ -1,7 +1,7 @@
-import catchAsync from '../../../utils/catchAsync';
-import sendResponse from '../../../utils/ApiResponse';
+import catchAsync from '../../utils/catchAsync';
+import sendResponse from '../../utils/ApiResponse';
 import { orderStatusService } from './orderStatus.service';
-import { JwtPayload } from '../../../types/jwt.types';
+import { JwtPayload } from '../../types/jwt.types';
 
 // Get order by ID
 const getOrderById = catchAsync(async (req: any, res) => {

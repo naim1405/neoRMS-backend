@@ -1,18 +1,17 @@
 import ApiError from '../../utils/ApiError';
 import httpStatus from 'http-status';
-import { prisma } from '@/lib/prisma';
+import prisma from '../../utils/prisma';
 import { IOrder, OrderStatus } from './orderStatus.types';
 import { JwtPayload } from '../../types/jwt.types';
 
 const getOrderById = async (orderId: string, userId: string) => {
     try {
-        
         const order = await (prisma as any).order.findUnique({
             where: {
                 id: orderId,
             },
             include: {
-                items: true, // NOTE: Assuming Order has items relation as must be included 
+                items: true, // NOTE: Assuming Order has items relation as must be included
             },
         });
 
@@ -47,7 +46,6 @@ const getUserOrders = async (
     try {
         const skip = (page - 1) * limit;
 
-        
         const whereClause: any = {
             userId: userId,
         };
@@ -90,13 +88,12 @@ const getUserOrders = async (
 
 const trackOrder = async (orderId: string, userId: string) => {
     try {
-        
         const order = await (prisma as any).order.findUnique({
             where: {
                 id: orderId,
             },
             include: {
-                items: true, 
+                items: true,
             },
         });
 
@@ -104,7 +101,6 @@ const trackOrder = async (orderId: string, userId: string) => {
             throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
         }
 
-        
         if (order.userId !== userId) {
             throw new ApiError(
                 httpStatus.FORBIDDEN,
@@ -144,7 +140,6 @@ const getOrderStep = (status: string): number => {
 
 const getOrderStats = async (userId: string) => {
     try {
-        
         const totalOrders = await (prisma as any).order.count({
             where: { userId: userId },
         });

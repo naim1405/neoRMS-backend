@@ -1,9 +1,8 @@
-import ApiError from '../../../utils/ApiError';
+import ApiError from '../../utils/ApiError';
 import httpStatus from 'http-status';
 import { prisma } from '@/lib/prisma';
 import { IOrder, OrderStatus } from './orderStatus.types';
-import { JwtPayload } from '../../../types/jwt.types';
-
+import { JwtPayload } from '../../types/jwt.types';
 
 const getOrderById = async (orderId: string, userId: string) => {
     try {

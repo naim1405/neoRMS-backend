@@ -26,6 +26,18 @@ enum UserRole {
     CUSTOMER
     OWNER
 }
+// Order 
+
+enum OrderStatus {
+    PENDING
+    CONFIRMED
+    PREPARING
+    READY
+    DELIVERED
+    CANCELLED
+}
+
+
 
 // Product Enums
 
@@ -81,6 +93,9 @@ model User {
     isVerified      Boolean  @default(false)
     refreshToken    String?
     verificationOTP Int?
+
+    // order
+    orders          Order[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -203,4 +218,37 @@ model Addon {
   menuProductId String
 
   @@index([menuProductId])
+}
+
+// Order model
+model Order {
+    id                      String      @id @default(uuid())
+    userId                  String
+    user                    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+    status                  OrderStatus @default(PENDING)
+    items                   OrderItem[]
+    totalPrice              Float
+    paymentMethod           String?
+    paymentStatus           String?
+    notes                   String?
+    estimatedDeliveryTime   Int?
+    deliveryAddress         String?
+
+    createdAt               DateTime    @default(now())
+    updatedAt               DateTime    @updatedAt
+}
+
+// Order Item model
+model OrderItem {
+    id          String  @id @default(uuid())
+    orderId     String
+    order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    menuItemId  String
+    name        String
+    quantity    Int
+    price       Float
+    notes       String?
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
 }

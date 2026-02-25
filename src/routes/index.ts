@@ -2,7 +2,7 @@ import express from 'express';
 
 const router = express.Router();
 import { authRoutes } from '../modules/auth/auth.routes';
-import { orderRoutes } from '../modules/Order/orderStatus.routes';
+import { orderRoutes } from '../modules/order/orderStatus.routes';
 
 const allRoutes = [
     {

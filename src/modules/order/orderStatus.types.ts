@@ -23,8 +23,7 @@ export interface IOrder {
     paymentMethod?: string | null;
     paymentStatus?: string | null;
     notes?: string | null;
-    estimatedDeliveryTime?: number | null;
-    deliveryAddress?: string | null;
+    estimatedDeliveryTimeInMinutes?: number | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -41,8 +40,8 @@ export interface ICreateOrderRequest {
     totalPrice: number;
     paymentMethod?: string;
     notes?: string;
-    estimatedDeliveryTime?: number;
-    deliveryAddress?: string;
+    estimatedDeliveryTimeInMinutes?: number;
+
 }
 
 // Update Order Request Body
@@ -51,8 +50,7 @@ export interface IUpdateOrderRequest {
     paymentMethod?: string;
     paymentStatus?: string;
     notes?: string;
-    estimatedDeliveryTime?: number;
-    deliveryAddress?: string;
+    estimatedDeliveryTimeInMinutes?: number;
 }
 
 // Get Order By ID Params

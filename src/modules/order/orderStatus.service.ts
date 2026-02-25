@@ -130,7 +130,7 @@ const trackOrder = async (orderId: string, userId: string) => {
         return {
             orderId: order.id,
             status: order.status,
-            estimatedDeliveryTime: order.estimatedDeliveryTime,
+            estimatedDeliveryTimeInMinutes: order.estimatedDeliveryTimeInMinutes,
             currentStep: getOrderStep(order.status),
             updatedAt: order.updatedAt,
         };
@@ -212,8 +212,8 @@ const updateOrder = async (
             const validTransitions: { [key: string]: OrderStatus[] } = {
                 [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
                 [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
-                [OrderStatus.PREPARING]: [OrderStatus.READY],
-                [OrderStatus.READY]: [OrderStatus.DELIVERED],
+                [OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.CANCELLED],
+                [OrderStatus.READY]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
                 [OrderStatus.DELIVERED]: [],
                 [OrderStatus.CANCELLED]: [],
             };
@@ -317,8 +317,7 @@ const createOrder = async (
                 totalPrice: orderData.totalPrice,
                 paymentMethod: orderData.paymentMethod,
                 notes: orderData.notes,
-                estimatedDeliveryTime: orderData.estimatedDeliveryTime,
-                deliveryAddress: orderData.deliveryAddress,
+                estimatedDeliveryTimeInMinutes: orderData.estimatedDeliveryTimeInMinutes,
                 items: {
                     create: orderData.items,
                 },

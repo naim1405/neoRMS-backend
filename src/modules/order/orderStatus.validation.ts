@@ -7,7 +7,7 @@ const getOrderByIdSchema = z.object({
     }),
 });
 
-// Get all user orders with pagination and filtering
+// Get all user orders with pagination and filtering : Order History
 const getUserOrdersSchema = z.object({
     query: z.object({
         limit: z.string().optional().refine(
@@ -64,8 +64,7 @@ const updateOrderSchema = z.object({
         paymentMethod: z.string().optional(),
         paymentStatus: z.string().optional(),
         notes: z.string().optional(),
-        estimatedDeliveryTime: z.number().int().positive().optional(),
-        deliveryAddress: z.string().optional(),
+        estimatedDeliveryTimeInMinutes: z.number().int().positive().optional(),
     }).refine(
         (data) => Object.values(data).some(val => val !== undefined),
         'At least one field must be provided for update'
@@ -87,8 +86,7 @@ const createOrderSchema = z.object({
         totalPrice: z.number().positive('Total price must be positive'),
         paymentMethod: z.string().optional(),
         notes: z.string().optional(),
-        estimatedDeliveryTime: z.number().int().positive().optional(),
-        deliveryAddress: z.string().optional(),
+        estimatedDeliveryTimeInMinutes: z.number().int().positive().optional(),
     }),
 });
 

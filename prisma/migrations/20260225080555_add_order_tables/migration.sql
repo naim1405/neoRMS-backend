@@ -10,8 +10,8 @@ CREATE TABLE "Order" (
     "paymentMethod" TEXT,
     "paymentStatus" TEXT,
     "notes" TEXT,
-    "estimatedDeliveryTime" INTEGER,
-    "deliveryAddress" TEXT,
+    "estimatedDeliveryTimeInMinutes" INTEGER,
+    
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

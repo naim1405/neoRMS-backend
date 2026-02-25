@@ -26,7 +26,7 @@ export interface IOrder {
     paymentMethod?: string; // e.g., 'CASH', 'CARD', 'ONLINE'
     paymentStatus?: string; // PENDING, COMPLETED, FAILED
     notes?: string;
-    estimatedDeliveryTime?: number; 
+    estimatedDeliveryTime?: number;
     deliveryAddress?: string;
     createdAt?: Date;
     updatedAt?: Date;

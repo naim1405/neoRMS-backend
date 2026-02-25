@@ -31,8 +31,13 @@ const trackOrderSchema = z.object({
     }),
 });
 
+const deleteOrderSchema = z.object({});
+const updateOrderSchema = z.object({});
+
 export const orderStatusValidation = {
     getOrderByIdSchema,
     getUserOrdersSchema,
     trackOrderSchema,
+    deleteOrderSchema,
+    updateOrderSchema,
 };

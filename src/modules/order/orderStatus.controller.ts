@@ -70,9 +70,14 @@ const getOrderStats = catchAsync(async (req: any, res) => {
     });
 });
 
+const deleteOrder = catchAsync(async (req: any, res) => {});
+const updateOrder = catchAsync(async (req: any, res) => {});
+
 export const orderStatusController = {
     getOrderById,
     getUserOrders,
     trackOrder,
     getOrderStats,
+    deleteOrder,
+    updateOrder,
 };

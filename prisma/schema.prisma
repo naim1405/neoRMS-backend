@@ -69,6 +69,14 @@ enum Currency {
   INR
 }
 
+enum IngredientUnit {
+  GRAM
+  KILOGRAM
+  LITER
+  MILLILITER
+  PIECE
+}
+
 // User model
 model User {
     id              String   @id @default(uuid())
@@ -121,6 +129,7 @@ model Restaurant {
     // Relations
     menuProducts          MenuProduct[]
     associatedRestaurants AssociatedRestaurant[]
+    restaurantInventory   RestaurantInventory[]
 }
 
 
@@ -149,7 +158,7 @@ model MenuProduct {
 
   // Relations
   reviews               Review[]
-  ingredients           Ingredient[]
+  ingredients           MenuProductIngredient[]
   variants              Variant[]
   addons                Addon[]
 
@@ -172,14 +181,55 @@ model Review {
   @@index([userId])
 }
 
-model Ingredient {
-  id            String      @id @default(uuid())
-  name          String
+// Catalog of all possible ingredients (restaurant-agnostic)
+model InventoryIngredient {
+  id        String         @id @default(uuid())
+  name      String         @unique
+  unit      IngredientUnit
 
-  menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
-  menuProductId String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
+  // Relations
+  restaurantInventories  RestaurantInventory[]
+  menuProductIngredients MenuProductIngredient[]
+}
+
+// Tracks how much of each ingredient a specific restaurant has in stock
+model RestaurantInventory {
+  id                String              @id @default(uuid())
+  restaurantId      String
+  ingredientId      String
+  availableQuantity Float
+  thresholdQuantity Float
+
+  restaurant        Restaurant          @relation(fields: [restaurantId], references: [id])
+  ingredient        InventoryIngredient @relation(fields: [ingredientId], references: [id])
+
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@unique([restaurantId, ingredientId])
+  @@index([restaurantId])
+  @@index([ingredientId])
+}
+
+// Defines how much of each ingredient a menu product requires
+model MenuProductIngredient {
+  id               String              @id @default(uuid())
+  menuProductId    String
+  ingredientId     String
+  requiredQuantity Float
+
+  menuProduct      MenuProduct         @relation(fields: [menuProductId], references: [id])
+  ingredient       InventoryIngredient @relation(fields: [ingredientId], references: [id])
+
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@unique([menuProductId, ingredientId])
   @@index([menuProductId])
+  @@index([ingredientId])
 }
 
 model Variant {

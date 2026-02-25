@@ -3,6 +3,7 @@ import express from 'express';
 const router = express.Router();
 
 import { authRoutes } from '../modules/auth/auth.routes';
+import { menuProductRoutes } from '../modules/menuProduct/menuProduct.routes';
 import { orderRoutes } from '../modules/order/orderStatus.routes';
 import { restaurantRoutes } from '../modules/restaurant/restaurant.routes';
 import { userRoutes } from '../modules/user/user.routes';
@@ -25,7 +26,10 @@ const allRoutes = [
         path: '/restaurant',
         route: restaurantRoutes,
     },
-
+    {
+        path: '/menuProduct',
+        route: menuProductRoutes,
+    },
 ];
 
 allRoutes.forEach(route => {

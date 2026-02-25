@@ -1,12 +1,12 @@
 import { Server } from 'socket.io';
 import cookie from 'cookie';
-import ApiError from './utils/ApiError';
+import ApiError from '../utils/ApiError';
 import httpstatus from 'http-status';
-import prisma from './utils/prisma';
-import { AuthUtils } from './utils/AuthUtils';
-import { ChatEventEnum } from './constants';
+import prisma from '../utils/prisma';
+import { AuthUtils } from '../utils/AuthUtils';
+import { ChatEventEnum } from '../constants';
 import { Request } from 'express';
-import { Socket } from './types/socket.types';
+import { Socket } from '../types/socket.types';
 
 const initializeScoketIO = (io: Server) => {
     return io.on('connection', async (socket: Socket) => {
@@ -14,6 +14,8 @@ const initializeScoketIO = (io: Server) => {
             console.log('Chat connected:', socket.id);
             let token = socket.handshake.auth?.token;
             if (!token) {
+                socket.emit('error', 'This is an error message');
+                return socket.disconnect();
                 throw new ApiError(
                     httpstatus.UNAUTHORIZED,
                     'Un-authorized handshake. Token is missing',

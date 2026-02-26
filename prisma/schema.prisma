@@ -30,51 +30,51 @@ enum UserRole {
 // Product Enums
 
 enum ProductStatus {
-  AVAILABLE
-  OUT_OF_STOCK
-  DISCONTINUED
-  DRAFT
+    AVAILABLE
+    OUT_OF_STOCK
+    DISCONTINUED
+    DRAFT
 }
 
 enum Category {
-  STARTER
-  MAIN_COURSE
-  DESSERT
-  BEVERAGE
-  SIDE
+    STARTER
+    MAIN_COURSE
+    DESSERT
+    BEVERAGE
+    SIDE
 }
 
 enum DietaryTag {
-  VEGETARIAN
-  VEGAN
-  HALAL
-  GLUTEN_FREE
-  DAIRY_FREE
-  NUT_FREE
+    VEGETARIAN
+    VEGAN
+    HALAL
+    GLUTEN_FREE
+    DAIRY_FREE
+    NUT_FREE
 }
 
 enum VariantType {
-  SMALL
-  MEDIUM
-  LARGE
-  FAMILY
-  SPECIAL
+    SMALL
+    MEDIUM
+    LARGE
+    FAMILY
+    SPECIAL
 }
 
 enum Currency {
-  USD
-  EUR
-  GBP
-  BDT
-  INR
+    USD
+    EUR
+    GBP
+    BDT
+    INR
 }
 
 enum IngredientUnit {
-  GRAM
-  KILOGRAM
-  LITER
-  MILLILITER
-  PIECE
+    GRAM
+    KILOGRAM
+    LITER
+    MILLILITER
+    PIECE
 }
 
 // User model
@@ -90,167 +90,275 @@ model User {
     refreshToken    String?
     verificationOTP Int?
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    // Relations
-    associatedRestaurants AssociatedRestaurant[]
-    reviews               Review[]
-}
-
-model AssociatedRestaurant {
-    id            String     @id @default(uuid())
-    userId        String
-    restaurantId  String
-
-    user          User       @relation(fields: [userId], references: [id])
-    restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+    Owner    Owner?
+    Customer Customer?
+    Chef     Chef?
+    Waiter   Waiter?
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+}
+
+model Owner {
+    id     String @id @default(uuid())
+    userId String
+    user   User   @relation(fields: [userId], references: [id])
+
+    restaurants Restaurant[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     @@index([userId])
-    @@index([restaurantId])
+}
+
+model Customer {
+    id     String @id @default(uuid())
+    userId String
+    user   User   @relation(fields: [userId], references: [id])
+
+    restaurants String[]
+    reviews     Review[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    orders    Order[]
+
+    @@index([userId])
+}
+
+model Chef {
+    id     String @id @default(uuid())
+    userId String
+    user   User   @relation(fields: [userId], references: [id])
+
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Waiter {
+    id     String @id @default(uuid())
+    userId String
+
+    user User @relation(fields: [userId], references: [id])
+
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 // Restaurant model
 model Restaurant {
-    id          String   @id @default(uuid())
+    id          String  @id @default(uuid())
     name        String
     tagline     String?
     description String?
     location    String?
     contactInfo String?
     bannerImage String?
-    
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-    
-    // Relations
-    menuProducts          MenuProduct[]
-    associatedRestaurants AssociatedRestaurant[]
-    restaurantInventory   RestaurantInventory[]
-}
 
+    tenantId String @unique
+
+    ownerId             String
+    owner               Owner                 @relation(fields: [ownerId], references: [userId])
+    chefs               Chef[]
+    waiters             Waiter[]
+    menuProducts        MenuProduct[]
+    restaurantInventory RestaurantInventory[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
 
 // Product model
 model MenuProduct {
-  id                    String        @id @default(uuid())
-  restaurantId          String
-  restaurant            Restaurant    @relation(fields: [restaurantId], references: [id])
+    id           String     @id @default(uuid())
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
 
-  productTitle          String
-  productDescription    String?
-  estimatedCookingTime  Int?          // in minutes
+    productTitle         String
+    productDescription   String?
+    estimatedCookingTime Int? // in minutes
 
-  userRating            Float?        // average rating
-  aiRating              Float?
+    userRating Float? // average rating
+    aiRating   Float?
 
-  status                ProductStatus
-  priceCurrency         Currency
-  category              Category
-  dietaryTags           DietaryTag[]
+    status        ProductStatus
+    priceCurrency Currency
+    category      Category
+    dietaryTags   DietaryTag[]
 
-  images                String[]
+    images String[]
 
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  // Relations
-  reviews               Review[]
-  ingredients           MenuProductIngredient[]
-  variants              Variant[]
-  addons                Addon[]
+    // Relations
+    reviews     Review[]
+    ingredients MenuProductIngredient[]
+    variants    Variant[]
+    addons      Addon[]
+    orders      OrderItem[]
 
-  @@index([restaurantId])
+    @@index([restaurantId])
 }
 
 model Review {
-  id            String      @id @default(uuid())
-  menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
-  menuProductId String
+    id String @id @default(uuid())
 
-  userId        String
-  user          User        @relation(fields: [userId], references: [id])
-  rating        Float
-  comment       String?
+    rating  Float
+    comment String?
 
-  createdAt     DateTime    @default(now())
+    customerId    String
+    customer      Customer    @relation(fields: [customerId], references: [userId])
+    menuProductId String
+    menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
 
-  @@index([menuProductId])
-  @@index([userId])
+    updatedAt DateTime @updatedAt
+    createdAt DateTime @default(now())
+
+    @@index([menuProductId])
+    @@index([customerId])
 }
 
 // Catalog of all possible ingredients (restaurant-agnostic)
 model InventoryIngredient {
-  id        String         @id @default(uuid())
-  name      String         @unique
-  unit      IngredientUnit
+    id   String         @id @default(uuid())
+    name String         @unique
+    unit IngredientUnit
 
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  // Relations
-  restaurantInventories  RestaurantInventory[]
-  menuProductIngredients MenuProductIngredient[]
+    // Relations
+    restaurantInventories  RestaurantInventory[]
+    menuProductIngredients MenuProductIngredient[]
 }
 
 // Tracks how much of each ingredient a specific restaurant has in stock
 model RestaurantInventory {
-  id                String              @id @default(uuid())
-  restaurantId      String
-  ingredientId      String
-  availableQuantity Float
-  thresholdQuantity Float?
+    id                String @id @default(uuid())
+    availableQuantity Float
+    thresholdQuantity Float  @default(0)
 
-  restaurant        Restaurant          @relation(fields: [restaurantId], references: [id])
-  ingredient        InventoryIngredient @relation(fields: [ingredientId], references: [id])
+    restaurantId String
+    restaurant   Restaurant          @relation(fields: [restaurantId], references: [id])
+    ingredientId String
+    ingredient   InventoryIngredient @relation(fields: [ingredientId], references: [id])
 
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  @@unique([restaurantId, ingredientId])
-  @@index([restaurantId])
-  @@index([ingredientId])
+    @@unique([restaurantId, ingredientId])
+    @@index([restaurantId])
+    @@index([ingredientId])
 }
 
 // Defines how much of each ingredient a menu product requires
 model MenuProductIngredient {
-  id               String              @id @default(uuid())
-  menuProductId    String
-  ingredientId     String
-  requiredQuantity Float
+    id               String @id @default(uuid())
+    requiredQuantity Float
 
-  menuProduct      MenuProduct         @relation(fields: [menuProductId], references: [id])
-  ingredient       InventoryIngredient @relation(fields: [ingredientId], references: [id])
+    menuProductId String
+    menuProduct   MenuProduct         @relation(fields: [menuProductId], references: [id])
+    ingredientId  String
+    ingredient    InventoryIngredient @relation(fields: [ingredientId], references: [id])
 
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  @@unique([menuProductId, ingredientId])
-  @@index([menuProductId])
-  @@index([ingredientId])
+    @@unique([menuProductId, ingredientId])
+    @@index([menuProductId])
+    @@index([ingredientId])
 }
 
 model Variant {
-  id            String       @id @default(uuid())
-  type          VariantType
-  price         Float
-  discount      Float?
+    id       String      @id @default(uuid())
+    type     VariantType
+    price    Float
+    discount Float?
 
-  menuProduct   MenuProduct  @relation(fields: [menuProductId], references: [id])
-  menuProductId String
+    menuProductId String
+    menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
 
-  @@index([menuProductId])
+    @@index([menuProductId])
 }
 
 model Addon {
-  id            String       @id @default(uuid())
-  name          String
-  price         Float
+    id    String @id @default(uuid())
+    name  String
+    price Float
 
-  menuProduct   MenuProduct  @relation(fields: [menuProductId], references: [id])
-  menuProductId String
+    menuProductId String
+    menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
 
-  @@index([menuProductId])
+    @@index([menuProductId])
+}
+
+// Order 
+enum OrderStatus {
+    PENDING
+    CONFIRMED
+    PREPARING
+    READY
+    DELIVERED
+    CANCELLED
+}
+
+enum PaymentMethod {
+    CASH
+    CARD
+    MOBILE_PAYMENT
+    ONLINE_PAYMENT
+}
+
+enum PaymentStatus {
+    PENDING
+    COMPLETED
+    FAILED
+    REFUNDED
+}
+
+// Order model
+model Order {
+    id                             String        @id @default(uuid())
+    status                         OrderStatus   @default(PENDING)
+    items                          OrderItem[]
+    totalPrice                     Float
+    paymentMethod                  PaymentMethod
+    paymentStatus                  PaymentStatus @default(PENDING)
+    notes                          String?
+    estimatedDeliveryTimeInMinutes Int? // in minutes
+
+    customerId String
+    Customer   Customer @relation(fields: [customerId], references: [userId], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+// Order Item model
+model OrderItem {
+    id       String  @id @default(uuid())
+    name     String
+    quantity Int
+    price    Float
+    notes    String?
+
+    orderId String
+    order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+    menuItemId String
+    menuItem   MenuProduct @relation(fields: [menuItemId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }

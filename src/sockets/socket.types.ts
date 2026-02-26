@@ -59,7 +59,7 @@ export enum ChefSocketEventEnum {
     // when user cancels an order
     ORDER_CANCELLED_EVENT = 'orderCancelled',
 }
-export enum CustomreSocketEventEnum {
+export enum CustomerSocketEventEnum {
     // once user is ready to go
     CONNECTED_EVENT = 'connected',
     // when user gets disconnected

@@ -1,12 +1,5 @@
 import { Server } from 'socket.io';
-import cookie from 'cookie';
-import ApiError from '../utils/ApiError';
-import httpstatus from 'http-status';
-import prisma from '../utils/prisma';
-import { AuthUtils } from '../utils/AuthUtils';
-import { ChatEventEnum } from '../constants';
 import { Request } from 'express';
-import { Socket } from './socket.types';
 import { setupWaiterSocketNamespace } from './waiterSocket';
 import { setupChefSocketNamespace } from './chefSocket';
 import { setupCustomerSocketNamespace } from './customerSocket';
@@ -20,17 +13,12 @@ const initializeScoketIO = (io: Server) => {
 
 const emitSocketEvent = (
     req: Request,
+    socketNamespace: SOCKET_NAMESPACES,
     roomId: string,
     event: string,
     payload: any,
-    socketNamespace: SOCKET_NAMESPACES,
 ) => {
     const io: Server = req.app.get('io');
-    // console.log('🚀 i  : ', i);
-    // console.log('🚀 roomId : ', roomId);
-    // console.log('🚀 event : ', event);
-    // console.log('🚀 payload : ', payload);
-    // console.log('🚀 namespace: ', socketNamespace);
     io.of(socketNamespace).to(roomId).emit(event, payload);
 };
 

@@ -68,3 +68,35 @@ export const verifyJwt =
             return next(err);
         }
     };
+
+export const ensureAssociatedRestaurant = async (socket: Socket, next: any) => {
+    try {
+        const associatedRestaurant =
+            await prisma.associatedRestaurant.findFirst({
+                where: {
+                    userId: socket.user?.id,
+                },
+            });
+
+        if (!associatedRestaurant) {
+            const err = new Error('No associated restaurant') as any;
+            err.data = {
+                status: httpstatus.FORBIDDEN,
+                message: 'No associated restaurant found for this user',
+            };
+            return next(err);
+        }
+
+        socket.data.restaurantId = associatedRestaurant.restaurantId;
+        return next();
+    } catch (error) {
+        const err = new Error(
+            'Failed to validate associated restaurant',
+        ) as any;
+        err.data = {
+            status: httpstatus.INTERNAL_SERVER_ERROR,
+            message: 'Unable to validate associated restaurant',
+        };
+        return next(err);
+    }
+};

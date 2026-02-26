@@ -3,6 +3,7 @@ import express from 'express';
 const router = express.Router();
 
 import { authRoutes } from '../modules/auth/auth.routes';
+import { inventoryRoutes } from '../modules/inventory/inventory.routes';
 import { menuProductRoutes } from '../modules/menuProduct/menuProduct.routes';
 import { orderRoutes } from '../modules/order/orderStatus.routes';
 import { restaurantRoutes } from '../modules/restaurant/restaurant.routes';
@@ -29,6 +30,10 @@ const allRoutes = [
     {
         path: '/menuProduct',
         route: menuProductRoutes,
+    },
+    {      
+        path: '/inventory',
+        route: inventoryRoutes,
     },
     {
         path: '/dummy',

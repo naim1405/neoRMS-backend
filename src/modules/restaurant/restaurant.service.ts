@@ -2,19 +2,34 @@ import ApiError from '../../utils/ApiError';
 import httpstatus from 'http-status';
 import prisma from '../../utils/prisma';
 import { ICreateRestaurant, IUpdateRestaurant } from './restaurant.types';
+import { JwtPayload } from '../../types/jwt.types';
 
-const createRestaurant = async (payload: ICreateRestaurant) => {
-    const restaurant = await prisma.restaurant.create({
-        data: {
-            name: payload.name,
-            tagline: payload.tagline,
-            description: payload.description,
-            location: payload.location,
-            contactInfo: payload.contactInfo,
-            bannerImage: payload.bannerImage,
-        },
+const createRestaurant = async (
+    payload: ICreateRestaurant,
+    user: JwtPayload,
+) => {
+    const result = await prisma.$transaction(async tx => {
+        const restaurant = await tx.restaurant.create({
+            data: {
+                name: payload.name,
+                tagline: payload.tagline,
+                description: payload.description,
+                location: payload.location,
+                contactInfo: payload.contactInfo,
+                bannerImage: payload.bannerImage,
+            },
+        });
+
+        await tx.associatedRestaurant.create({
+            data: {
+                userId: user.id,
+                restaurantId: restaurant.id,
+            },
+        });
+
+        return restaurant;
     });
-    return restaurant;
+    return result;
 };
 
 const updateRestaurant = async (id: string, payload: IUpdateRestaurant) => {

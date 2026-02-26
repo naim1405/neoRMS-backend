@@ -10,7 +10,7 @@ const router = express.Router();
 // MANAGER & OWNER can create a restaurant
 router.post(
     '/',
-    verifyJwt(UserRole.MANAGER, UserRole.OWNER),
+    verifyJwt(UserRole.OWNER),
     validateRequest(restaurantValidation.createRestaurantSchema),
     restaurantController.createRestaurant,
 );

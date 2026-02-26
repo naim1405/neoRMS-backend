@@ -4,7 +4,7 @@ import catchAsync from '../../utils/catchAsync';
 import { restaurantService } from './restaurant.service';
 
 const createRestaurant = catchAsync(async (req, res) => {
-    const result = await restaurantService.createRestaurant(req.body);
+    const result = await restaurantService.createRestaurant(req.body, req.user);
     sendResponse(res, {
         statusCode: httpstatus.CREATED,
         success: true,
@@ -27,7 +27,9 @@ const updateRestaurant = catchAsync(async (req, res) => {
 });
 
 const getRestaurantById = catchAsync(async (req, res) => {
-    const result = await restaurantService.getRestaurantById(req.params.id as string);
+    const result = await restaurantService.getRestaurantById(
+        req.params.id as string,
+    );
     sendResponse(res, {
         statusCode: httpstatus.OK,
         success: true,

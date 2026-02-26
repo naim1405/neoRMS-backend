@@ -1,0 +1,462 @@
+// neoRMS - Multi-Tenant Restaurant Management SaaS
+// dbdiagram.io DBML Schema
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+Enum UserRole {
+  WAITER
+  CHEF
+  MANAGER
+  CUSTOMER
+  OWNER
+}
+
+Enum ProductStatus {
+  AVAILABLE
+  OUT_OF_STOCK
+  DISCONTINUED
+  DRAFT
+}
+
+Enum Category {
+  STARTER
+  MAIN_COURSE
+  DESSERT
+  BEVERAGE
+  SIDE
+}
+
+Enum DietaryTag {
+  VEGETARIAN
+  VEGAN
+  HALAL
+  GLUTEN_FREE
+  DAIRY_FREE
+  NUT_FREE
+}
+
+Enum VariantType {
+  SMALL
+  MEDIUM
+  LARGE
+  FAMILY
+  SPECIAL
+}
+
+Enum Currency {
+  USD
+  EUR
+  GBP
+  BDT
+  INR
+}
+
+Enum IngredientUnit {
+  GRAM
+  KILOGRAM
+  LITER
+  MILLILITER
+  PIECE
+}
+
+Enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+}
+
+Enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+Enum PaymentMethod {
+  CASH
+  CARD
+  MOBILE_PAYMENT
+  ONLINE_PAYMENT
+}
+
+Enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ─────────────────────────────────────────────
+// TENANT
+// ─────────────────────────────────────────────
+
+Table Tenant {
+  id                 varchar [pk]
+  name               varchar [not null]
+  slug               varchar [not null, unique]
+  plan               varchar [not null, default: "free"]
+  subscriptionStatus varchar [not null, default: "active"]
+  isActive           boolean [not null, default: true]
+  createdAt          timestamp [not null, default: `now()`]
+  updatedAt          timestamp [not null]
+  lastUpdatedBy      varchar
+  isDeleted          boolean [not null, default: false]
+  deletedBy          varchar
+}
+
+// ─────────────────────────────────────────────
+// USERS & ROLE PROFILES
+// ─────────────────────────────────────────────
+
+Table User {
+  id              varchar  [pk]
+  email           varchar  [not null, unique]
+  fullName        varchar  [not null]
+  role            UserRole [not null]
+  avatar          varchar
+  password        varchar
+  authProvider    varchar  [not null, default: "local"]
+  isVerified      boolean  [not null, default: false]
+  refreshToken    varchar
+  verificationOTP int
+  createdAt       timestamp [not null, default: `now()`]
+  updatedAt       timestamp [not null]
+  lastUpdatedBy   varchar
+  isDeleted       boolean  [not null, default: false]
+  deletedBy       varchar
+}
+
+Table Owner {
+  id            varchar [pk]
+  userId        varchar [not null, unique, ref: - User.id]
+  tenantId      varchar [not null, unique, ref: - Tenant.id]
+  createdAt     timestamp [not null, default: `now()`]
+  updatedAt     timestamp [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean [not null, default: false]
+  deletedBy     varchar
+
+  indexes {
+    userId
+    tenantId
+  }
+}
+
+Table Customer {
+  id            varchar [pk]
+  userId        varchar [not null, unique, ref: - User.id]
+  tenantId      varchar [not null, ref: > Tenant.id]
+  createdAt     timestamp [not null, default: `now()`]
+  updatedAt     timestamp [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean [not null, default: false]
+  deletedBy     varchar
+
+  indexes {
+    userId
+    tenantId
+  }
+}
+
+Table Chef {
+  id            varchar [pk]
+  userId        varchar [not null, unique, ref: - User.id]
+  tenantId      varchar [not null, ref: > Tenant.id]
+  restaurantId  varchar [not null, ref: > Restaurant.id]
+  createdAt     timestamp [not null, default: `now()`]
+  updatedAt     timestamp [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean [not null, default: false]
+  deletedBy     varchar
+
+  indexes {
+    userId
+    tenantId
+    restaurantId
+  }
+}
+
+Table Waiter {
+  id            varchar [pk]
+  userId        varchar [not null, unique, ref: - User.id]
+  tenantId      varchar [not null, ref: > Tenant.id]
+  restaurantId  varchar [not null, ref: > Restaurant.id]
+  createdAt     timestamp [not null, default: `now()`]
+  updatedAt     timestamp [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean [not null, default: false]
+  deletedBy     varchar
+
+  indexes {
+    userId
+    tenantId
+    restaurantId
+  }
+}
+
+Table Manager {
+  id            varchar [pk]
+  userId        varchar [not null, unique, ref: - User.id]
+  tenantId      varchar [not null, ref: > Tenant.id]
+  restaurantId  varchar [not null, ref: > Restaurant.id]
+  createdAt     timestamp [not null, default: `now()`]
+  updatedAt     timestamp [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean [not null, default: false]
+  deletedBy     varchar
+
+  indexes {
+    userId
+    tenantId
+    restaurantId
+  }
+}
+
+// ─────────────────────────────────────────────
+// RESTAURANT
+// ─────────────────────────────────────────────
+
+Table Restaurant {
+  id            varchar [pk]
+  name          varchar [not null]
+  tagline       varchar
+  description   varchar
+  location      varchar
+  contactInfo   varchar
+  bannerImage   varchar
+  tenantId      varchar [not null, ref: > Tenant.id]
+  ownerId       varchar [not null, ref: > Owner.userId]
+  createdAt     timestamp [not null, default: `now()`]
+  updatedAt     timestamp [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean [not null, default: false]
+  deletedBy     varchar
+
+  indexes {
+    tenantId
+    ownerId
+  }
+}
+
+Table Table {
+  id            varchar [pk]
+  tableNumber   int     [not null]
+  capacity      int
+  restaurantId  varchar [not null, ref: > Restaurant.id]
+  tenantId      varchar [not null, ref: > Tenant.id]
+  createdAt     timestamp [not null, default: `now()`]
+  updatedAt     timestamp [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean [not null, default: false]
+  deletedBy     varchar
+
+  indexes {
+    (restaurantId, tableNumber) [unique]
+    restaurantId
+    tenantId
+  }
+}
+
+// ─────────────────────────────────────────────
+// MENU
+// ─────────────────────────────────────────────
+
+Table MenuProduct {
+  id                   varchar       [pk]
+  restaurantId         varchar       [not null, ref: > Restaurant.id]
+  tenantId             varchar       [not null, ref: > Tenant.id]
+  productTitle         varchar       [not null]
+  productDescription   varchar
+  estimatedCookingTime int
+  userRating           float
+  aiRating             float
+  status               ProductStatus [not null]
+  priceCurrency        Currency      [not null]
+  basePrice            float
+  category             Category      [not null]
+  createdAt            timestamp     [not null, default: `now()`]
+  updatedAt            timestamp     [not null]
+  lastUpdatedBy        varchar
+  isDeleted            boolean       [not null, default: false]
+  deletedBy            varchar
+
+  indexes {
+    restaurantId
+    tenantId
+  }
+}
+
+Table Variant {
+  id            varchar     [pk]
+  type          VariantType [not null]
+  price         float       [not null]
+  discount      float
+  menuProductId varchar     [not null, ref: > MenuProduct.id]
+  createdAt     timestamp   [not null, default: `now()`]
+  updatedAt     timestamp   [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean     [not null, default: false]
+  deletedBy     varchar
+
+  indexes {
+    (menuProductId, type) [unique]
+    menuProductId
+  }
+}
+
+Table Addon {
+  id            varchar   [pk]
+  name          varchar   [not null]
+  price         float     [not null]
+  menuProductId varchar   [not null, ref: > MenuProduct.id]
+  createdAt     timestamp [not null, default: `now()`]
+  updatedAt     timestamp [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean   [not null, default: false]
+  deletedBy     varchar
+
+  indexes {
+    menuProductId
+  }
+}
+
+Table Review {
+  id            varchar   [pk]
+  rating        float     [not null]
+  comment       varchar
+  customerId    varchar   [not null, ref: > Customer.userId]
+  menuProductId varchar   [not null, ref: > MenuProduct.id]
+  createdAt     timestamp [not null, default: `now()`]
+  updatedAt     timestamp [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean   [not null, default: false]
+  deletedBy     varchar
+
+  indexes {
+    (customerId, menuProductId) [unique]
+    menuProductId
+    customerId
+  }
+}
+
+// ─────────────────────────────────────────────
+// INVENTORY
+// ─────────────────────────────────────────────
+
+Table InventoryIngredient {
+  id            varchar        [pk]
+  name          varchar        [not null, unique]
+  unit          IngredientUnit [not null]
+  createdAt     timestamp      [not null, default: `now()`]
+  updatedAt     timestamp      [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean        [not null, default: false]
+  deletedBy     varchar
+}
+
+Table RestaurantInventory {
+  id                varchar   [pk]
+  availableQuantity float     [not null]
+  thresholdQuantity float     [not null, default: 0]
+  restaurantId      varchar   [not null, ref: > Restaurant.id]
+  ingredientId      varchar   [not null, ref: > InventoryIngredient.id]
+  tenantId          varchar   [not null, ref: > Tenant.id]
+  createdAt         timestamp [not null, default: `now()`]
+  updatedAt         timestamp [not null]
+  lastUpdatedBy     varchar
+  isDeleted         boolean   [not null, default: false]
+  deletedBy         varchar
+
+  indexes {
+    (restaurantId, ingredientId) [unique]
+    restaurantId
+    ingredientId
+    tenantId
+  }
+}
+
+Table MenuProductIngredient {
+  id               varchar   [pk]
+  requiredQuantity float     [not null]
+  menuProductId    varchar   [not null, ref: > MenuProduct.id]
+  ingredientId     varchar   [not null, ref: > InventoryIngredient.id]
+  createdAt        timestamp [not null, default: `now()`]
+  updatedAt        timestamp [not null]
+  lastUpdatedBy    varchar
+  isDeleted        boolean   [not null, default: false]
+  deletedBy        varchar
+
+  indexes {
+    (menuProductId, ingredientId) [unique]
+    menuProductId
+    ingredientId
+  }
+}
+
+// ─────────────────────────────────────────────
+// ORDERS
+// ─────────────────────────────────────────────
+
+Table Order {
+  id                             varchar       [pk]
+  status                         OrderStatus   [not null, default: "PENDING"]
+  totalPrice                     float         [not null]
+  paymentMethod                  PaymentMethod [not null]
+  paymentStatus                  PaymentStatus [not null, default: "PENDING"]
+  notes                          varchar
+  estimatedDeliveryTimeInMinutes int
+  customerId                     varchar       [not null, ref: > Customer.userId]
+  restaurantId                   varchar       [not null, ref: > Restaurant.id]
+  tenantId                       varchar       [not null, ref: > Tenant.id]
+  tableId                        varchar       [ref: > Table.id]
+  orderType                      OrderType     [not null]
+  createdAt                      timestamp     [not null, default: `now()`]
+  updatedAt                      timestamp     [not null]
+  lastUpdatedBy                  varchar
+  isDeleted                      boolean       [not null, default: false]
+  deletedBy                      varchar
+
+  indexes {
+    tenantId
+    restaurantId
+    customerId
+  }
+}
+
+Table OrderItem {
+  id            varchar     [pk]
+  name          varchar     [not null]
+  quantity      int         [not null]
+  price         float       [not null]
+  notes         varchar
+  variantType   VariantType
+  orderId       varchar     [not null, ref: > Order.id]
+  menuItemId    varchar     [not null, ref: > MenuProduct.id]
+  variantId     varchar     [ref: > Variant.id]
+  createdAt     timestamp   [not null, default: `now()`]
+  updatedAt     timestamp   [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean     [not null, default: false]
+  deletedBy     varchar
+}
+
+Table OrderItemAddon {
+  id            varchar   [pk]
+  name          varchar   [not null]
+  price         float     [not null]
+  orderItemId   varchar   [not null, ref: > OrderItem.id]
+  addonId       varchar   [ref: > Addon.id]
+  createdAt     timestamp [not null, default: `now()`]
+  updatedAt     timestamp [not null]
+  lastUpdatedBy varchar
+  isDeleted     boolean   [not null, default: false]
+  deletedBy     varchar
+
+  indexes {
+    orderItemId
+  }
+}

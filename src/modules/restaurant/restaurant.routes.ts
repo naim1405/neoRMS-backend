@@ -7,18 +7,18 @@ import { UserRole } from '@prisma/client';
 
 const router = express.Router();
 
-// Only MANAGER can create a restaurant
+// MANAGER & OWNER can create a restaurant
 router.post(
     '/',
-    verifyJwt(UserRole.MANAGER),
+    verifyJwt(UserRole.MANAGER, UserRole.OWNER),
     validateRequest(restaurantValidation.createRestaurantSchema),
     restaurantController.createRestaurant,
 );
 
-// Only MANAGER can update a restaurant
+// MANAGER & OWNER can update a restaurant
 router.patch(
     '/:id',
-    verifyJwt(UserRole.MANAGER),
+    verifyJwt(UserRole.MANAGER, UserRole.OWNER),
     validateRequest(restaurantValidation.updateRestaurantSchema),
     restaurantController.updateRestaurant,
 );

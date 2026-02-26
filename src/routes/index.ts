@@ -8,7 +8,7 @@ import { menuProductRoutes } from '../modules/menuProduct/menuProduct.routes';
 import { orderRoutes } from '../modules/order/orderStatus.routes';
 import { restaurantRoutes } from '../modules/restaurant/restaurant.routes';
 import { userRoutes } from '../modules/user/user.routes';
-
+import { dummyRoutes } from '../modules/dummy/dummy.routes';
 
 const allRoutes = [
     {
@@ -31,9 +31,13 @@ const allRoutes = [
         path: '/menuProduct',
         route: menuProductRoutes,
     },
-    {
+    {      
         path: '/inventory',
         route: inventoryRoutes,
+    },
+    {
+        path: '/dummy',
+        route: dummyRoutes,
     },
 ];
 

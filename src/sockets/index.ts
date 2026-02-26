@@ -8,6 +8,8 @@ import { ChatEventEnum } from '../constants';
 import { Request } from 'express';
 import { Socket } from './socket.types';
 import { setupWaiterSocketNamespace } from './waiterSocket';
+import { setupChefSocketNamespace } from './chefSocket';
+import { setupCustomerSocketNamespace } from './customerSocket';
 
 // const initializeScoketIO = (io: Server) => {
 //     return io.on('connection', async (socket: Socket) => {
@@ -74,6 +76,8 @@ import { setupWaiterSocketNamespace } from './waiterSocket';
 
 const initializeScoketIO = (io: Server) => {
     setupWaiterSocketNamespace(io);
+    setupChefSocketNamespace(io);
+    setupCustomerSocketNamespace(io);
 };
 
 enum SOCKET_NAMESPACES {

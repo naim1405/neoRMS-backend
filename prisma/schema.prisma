@@ -71,6 +71,33 @@ enum IngredientUnit {
     PIECE
 }
 
+// Tenant model
+model Tenant {
+    id                 String  @id @default(uuid())
+    name               String
+    slug               String  @unique
+    plan               String  @default("free")
+    subscriptionStatus String  @default("active")
+    isActive           Boolean @default(true)
+
+    owner               Owner?
+    restaurants         Restaurant[]
+    customers           Customer[]
+    chefs               Chef[]
+    waiters             Waiter[]
+    managers            Manager[]
+    menuProducts        MenuProduct[]
+    restaurantInventory RestaurantInventory[]
+    tables              Table[]
+    orders              Order[]
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+}
+
 // User model
 model User {
     id              String   @id @default(uuid())
@@ -102,6 +129,9 @@ model Owner {
     userId String @unique
     user   User   @relation(fields: [userId], references: [id])
 
+    tenantId String @unique
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
     restaurants Restaurant[]
 
     createdAt     DateTime @default(now())
@@ -111,12 +141,16 @@ model Owner {
     deletedBy     String?
 
     @@index([userId])
+    @@index([tenantId])
 }
 
 model Customer {
     id     String @id @default(uuid())
     userId String @unique
     user   User   @relation(fields: [userId], references: [id])
+
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
 
     restaurants String[]
     reviews     Review[]
@@ -129,12 +163,16 @@ model Customer {
     deletedBy     String?
 
     @@index([userId])
+    @@index([tenantId])
 }
 
 model Chef {
     id     String @id @default(uuid())
     userId String @unique
     user   User   @relation(fields: [userId], references: [id])
+
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
 
     restaurantId String
     restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
@@ -146,6 +184,7 @@ model Chef {
     deletedBy     String?
 
     @@index([userId])
+    @@index([tenantId])
     @@index([restaurantId])
 }
 
@@ -155,6 +194,9 @@ model Waiter {
 
     user User @relation(fields: [userId], references: [id])
 
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
     restaurantId String
     restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
 
@@ -165,6 +207,7 @@ model Waiter {
     deletedBy     String?
 
     @@index([userId])
+    @@index([tenantId])
     @@index([restaurantId])
 }
 
@@ -174,6 +217,9 @@ model Manager {
 
     user User @relation(fields: [userId], references: [id])
 
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
     restaurantId String
     restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
 
@@ -184,6 +230,7 @@ model Manager {
     deletedBy     String?
 
     @@index([userId])
+    @@index([tenantId])
     @@index([restaurantId])
 }
 
@@ -197,7 +244,8 @@ model Restaurant {
     contactInfo String?
     bannerImage String?
 
-    tenantId String @unique
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
 
     ownerId             String
     owner               Owner                 @relation(fields: [ownerId], references: [userId])
@@ -214,6 +262,9 @@ model Restaurant {
     isDeleted     Boolean  @default(false)
     deletedBy     String?
     orders        Order[]
+
+    @@index([tenantId])
+    @@index([ownerId])
 }
 
 // Product model
@@ -221,6 +272,9 @@ model MenuProduct {
     id           String     @id @default(uuid())
     restaurantId String
     restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
 
     productTitle         String
     productDescription   String?
@@ -251,6 +305,7 @@ model MenuProduct {
     orders      OrderItem[]
 
     @@index([restaurantId])
+    @@index([tenantId])
 }
 
 model Review {
@@ -303,6 +358,9 @@ model RestaurantInventory {
     ingredientId String
     ingredient   InventoryIngredient @relation(fields: [ingredientId], references: [id])
 
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
     lastUpdatedBy String?
@@ -312,6 +370,7 @@ model RestaurantInventory {
     @@unique([restaurantId, ingredientId])
     @@index([restaurantId])
     @@index([ingredientId])
+    @@index([tenantId])
 }
 
 // Defines how much of each ingredient a menu product requires
@@ -413,6 +472,9 @@ model Table {
     restaurantId String
     restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
 
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
     orders Order[]
 
     createdAt     DateTime @default(now())
@@ -423,6 +485,7 @@ model Table {
 
     @@unique([restaurantId, tableNumber])
     @@index([restaurantId])
+    @@index([tenantId])
 }
 
 // Order model
@@ -441,6 +504,9 @@ model Order {
     restaurantId String
     restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
 
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
     tableId   String?
     table     Table?    @relation(fields: [tableId], references: [id])
     orderType OrderType
@@ -450,6 +516,10 @@ model Order {
     lastUpdatedBy String?
     isDeleted     Boolean  @default(false)
     deletedBy     String?
+
+    @@index([tenantId])
+    @@index([restaurantId])
+    @@index([customerId])
 }
 
 // Order Item model

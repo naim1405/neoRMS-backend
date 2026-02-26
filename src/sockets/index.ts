@@ -18,12 +18,6 @@ const initializeScoketIO = (io: Server) => {
     setupCustomerSocketNamespace(io);
 };
 
-enum SOCKET_NAMESPACES {
-    WAITER = '/waiter',
-    CHEF = '/chef',
-    CUSTOMER = '/customer',
-}
-
 const emitSocketEvent = (
     req: Request,
     roomId: string,

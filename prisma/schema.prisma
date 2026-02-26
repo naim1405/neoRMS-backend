@@ -88,6 +88,7 @@ model User {
     Customer Customer?
     Chef     Chef?
     Waiter   Waiter?
+    Manager  Manager?
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
@@ -167,6 +168,25 @@ model Waiter {
     @@index([restaurantId])
 }
 
+model Manager {
+    id     String @id @default(uuid())
+    userId String @unique
+
+    user User @relation(fields: [userId], references: [id])
+
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@index([userId])
+    @@index([restaurantId])
+}
+
 // Restaurant model
 model Restaurant {
     id          String  @id @default(uuid())
@@ -185,6 +205,8 @@ model Restaurant {
     waiters             Waiter[]
     menuProducts        MenuProduct[]
     restaurantInventory RestaurantInventory[]
+    managers            Manager[]
+    tables              Table[]
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
@@ -209,6 +231,7 @@ model MenuProduct {
 
     status        ProductStatus
     priceCurrency Currency
+    basePrice     Float? // used when product has no variants
     category      Category
     dietaryTags   DietaryTag[]
 
@@ -247,6 +270,7 @@ model Review {
     isDeleted     Boolean  @default(false)
     deletedBy     String?
 
+    @@unique([customerId, menuProductId])
     @@index([menuProductId])
     @@index([customerId])
 }
@@ -326,6 +350,9 @@ model Variant {
     isDeleted     Boolean  @default(false)
     deletedBy     String?
 
+    orderItems OrderItem[]
+
+    @@unique([menuProductId, type])
     @@index([menuProductId])
 }
 
@@ -343,7 +370,15 @@ model Addon {
     isDeleted     Boolean  @default(false)
     deletedBy     String?
 
+    orderItemAddons OrderItemAddon[]
+
     @@index([menuProductId])
+}
+
+enum OrderType {
+    DINE_IN
+    TAKEAWAY
+    DELIVERY
 }
 
 // Order 
@@ -370,6 +405,26 @@ enum PaymentStatus {
     REFUNDED
 }
 
+model Table {
+    id          String @id @default(uuid())
+    tableNumber Int
+    capacity    Int?
+
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+    orders Order[]
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@unique([restaurantId, tableNumber])
+    @@index([restaurantId])
+}
+
 // Order model
 model Order {
     id                             String        @id @default(uuid())
@@ -382,9 +437,13 @@ model Order {
     estimatedDeliveryTimeInMinutes Int? // in minutes
 
     customerId   String
-    customer     Customer   @relation(fields: [customerId], references: [userId], onDelete: Cascade)
+    customer     Customer   @relation(fields: [customerId], references: [userId], onDelete: Restrict)
     restaurantId String
     restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+
+    tableId   String?
+    table     Table?    @relation(fields: [tableId], references: [id])
+    orderType OrderType
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
@@ -395,11 +454,12 @@ model Order {
 
 // Order Item model
 model OrderItem {
-    id       String  @id @default(uuid())
-    name     String
-    quantity Int
-    price    Float
-    notes    String?
+    id          String       @id @default(uuid())
+    name        String
+    quantity    Int
+    price       Float // snapshot of price at time of order
+    notes       String?
+    variantType VariantType? // snapshot of selected variant
 
     orderId String
     order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -407,9 +467,34 @@ model OrderItem {
     menuItemId String
     menuItem   MenuProduct @relation(fields: [menuItemId], references: [id])
 
+    variantId String?
+    variant   Variant? @relation(fields: [variantId], references: [id])
+
+    selectedAddons OrderItemAddon[]
+
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
     lastUpdatedBy String?
     isDeleted     Boolean  @default(false)
     deletedBy     String?
+}
+
+model OrderItemAddon {
+    id    String @id @default(uuid())
+    name  String // snapshot
+    price Float // snapshot
+
+    orderItemId String
+    orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+    addonId String?
+    addon   Addon?  @relation(fields: [addonId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@index([orderItemId])
 }

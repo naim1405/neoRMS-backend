@@ -2,9 +2,13 @@ import httpstatus from 'http-status';
 import sendResponse from '../../utils/ApiResponse';
 import catchAsync from '../../utils/catchAsync';
 import { restaurantService } from './restaurant.service';
+import { JwtPayload } from '../../types/jwt.types';
 
 const createRestaurant = catchAsync(async (req, res) => {
-    const result = await restaurantService.createRestaurant(req.body, req.user);
+    const result = await restaurantService.createRestaurant(
+        req.body,
+        req.user as JwtPayload,
+    );
     sendResponse(res, {
         statusCode: httpstatus.CREATED,
         success: true,

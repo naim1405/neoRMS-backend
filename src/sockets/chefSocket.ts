@@ -8,7 +8,7 @@ import { ChatEventEnum } from '../constants';
 import { Socket } from './socket.types';
 import { verifyJwt } from '../middlewares/socket.middleware';
 import { UserRole } from '@prisma/client';
-import { SOCKET_NAMESPACES } from '.';
+import { SOCKET_NAMESPACES } from './socket.types';
 
 export const setupChefSocketNamespace = (io: Server) => {
     const chefSocket = io.of(SOCKET_NAMESPACES.CHEF);

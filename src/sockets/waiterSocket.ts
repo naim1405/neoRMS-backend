@@ -4,7 +4,7 @@ import {
     verifyJwt,
 } from '../middlewares/socket.middleware';
 import { UserRole } from '@prisma/client';
-import { SOCKET_NAMESPACES } from '.';
+import { SOCKET_NAMESPACES } from './socket.types';
 
 export const setupWaiterSocketNamespace = (io: Server) => {
     const waiterSocket = io.of(SOCKET_NAMESPACES.WAITER);

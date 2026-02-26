@@ -11,6 +11,7 @@ export const verifyJwt =
             const accessToken =
                 req.cookies?.accessToken ||
                 req.headers.authorization?.split(' ')[1];
+
             if (!accessToken) {
                 throw new ApiError(
                     httpstatus.UNAUTHORIZED,
@@ -47,6 +48,6 @@ export const verifyJwt =
             }
             next();
         } catch (err) {
-            throw new ApiError(httpstatus.UNAUTHORIZED, 'Invalid token');
+            next(err);
         }
     };

@@ -7,7 +7,9 @@ export const verifyJwt =
     (...requiredRoles: string[]) =>
     async (socket: Socket, next: any) => {
         try {
-            const accessToken = socket.handshake.auth?.token;
+            const accessToken =
+                socket.handshake.auth?.token ||
+                socket.handshake.headers?.authorization?.split(' ')[1];
             if (!accessToken) {
                 const err = new Error('Token missing') as any;
                 err.data = {

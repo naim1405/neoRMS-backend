@@ -2,88 +2,58 @@ import ApiError from '../../utils/ApiError';
 import httpStatus from 'http-status';
 import prisma from '../../utils/prisma';
 import { IOrder, IUpdateOrderRequest, IOrderStats } from './orderStatus.types';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, OrderType, UserRole } from '@prisma/client';
 
-/**
- * Get all orders for a user with pagination and optional status filter
- */
-const getUserOrders = async (
-    userId: string,
-    limit: number = 10,
-    page: number = 1,
-    status?: OrderStatus,
-) => {
-    try {
-        const skip = (page - 1) * limit;
-
-        const whereClause: any = {
-            userId: userId,
-        };
-
-        if (status) {
-            whereClause.status = status;
-        }
-
-        const orders = await (prisma as any).order.findMany({
-            take: limit,
-            skip: skip,
-            where: whereClause,
-            include: {
-                items: true,
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
-
-        const total = await (prisma as any).order.count({
-            where: whereClause,
-        });
-
-        return {
-            data: orders,
-            meta: {
-                page,
-                limit,
-                total,
-            },
-        };
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(
-            httpStatus.INTERNAL_SERVER_ERROR,
-            'Failed to fetch user orders',
-        );
-    }
-};
 
 /**
  * Get statistics for a user's orders (total, pending, completed, cancelled counts)
  */
-const getOrderStats = async (userId: string): Promise<IOrderStats> => {
+const getOrderStatsByUserID = async (userIdtoFindStats: string, CurrUserrole: string): Promise<IOrderStats> => {
     try {
+
         const totalOrders = await (prisma as any).order.count({
-            where: { userId: userId },
+            where: { userId: userIdtoFindStats },
         });
 
         const pendingOrders = await (prisma as any).order.count({
             where: {
-                userId: userId,
-                status: { in: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING] },
+                userId: userIdtoFindStats,
+                status: OrderStatus.PENDING
+            },
+        });
+
+        const confirmedOrders = await (prisma as any).order.count({
+            where: {
+                userId: userIdtoFindStats,
+                status: OrderStatus.CONFIRMED
+            },
+        });
+
+        const preparingOrders = await (prisma as any).order.count({
+            where: {
+                userId: userIdtoFindStats,
+                status: OrderStatus.PREPARING
             },
         });
 
         const completedOrders = await (prisma as any).order.count({
             where: {
-                userId: userId,
+                userId: userIdtoFindStats,
                 status: OrderStatus.DELIVERED,
             },
         });
 
         const cancelledOrders = await (prisma as any).order.count({
             where: {
-                userId: userId,
+                userId: userIdtoFindStats,
                 status: OrderStatus.CANCELLED,
+            },
+        });
+
+        const readyOrders = await (prisma as any).order.count({
+            where: {
+                userId: userIdtoFindStats,
+                status: OrderStatus.READY,
             },
         });
 
@@ -92,6 +62,9 @@ const getOrderStats = async (userId: string): Promise<IOrderStats> => {
             pendingOrders,
             completedOrders,
             cancelledOrders,
+            confirmedOrders,
+            preparingOrders,
+            readyOrders
         };
     } catch (error) {
         if (error instanceof ApiError) throw error;
@@ -105,22 +78,25 @@ const getOrderStats = async (userId: string): Promise<IOrderStats> => {
 /**
  * Track order status in real-time with current progress step
  */
-const trackOrder = async (orderId: string, userId: string) => {
+const trackOrder = async (orderId: string, userId: string, userRole: string) => {
     try {
         const order = await (prisma as any).order.findUnique({
-            where: {
-                id: orderId,
-            },
-            include: {
-                items: true,
-            },
+            where: { id: orderId },
+            include: { items: true },
         });
 
+        // 1. Check if order exists first
         if (!order) {
             throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
         }
 
-        if (order.userId !== userId) {
+        // 2. Permission Logic:
+        // STAFF (Waiter, Chef, Manager) can see any order.
+        // CUSTOMERS can only see their own orders.
+        const isStaff = [UserRole.WAITER, UserRole.CHEF, UserRole.MANAGER].includes(userRole as any);
+        const isCustomerOwnerOfOrder = order.userId === userId;
+
+        if (!isStaff && !isCustomerOwnerOfOrder) {
             throw new ApiError(
                 httpStatus.FORBIDDEN,
                 'You do not have permission to track this order',
@@ -146,8 +122,10 @@ const trackOrder = async (orderId: string, userId: string) => {
 /**
  * Get single order by ID with authorization check
  */
-const getOrderById = async (orderId: string, userId: string): Promise<IOrder> => {
+const getOrderById = async (orderId: string, userId: string, userRole: string): Promise<IOrder> => {
     try {
+
+
         const order = await (prisma as any).order.findUnique({
             where: {
                 id: orderId,
@@ -161,7 +139,12 @@ const getOrderById = async (orderId: string, userId: string): Promise<IOrder> =>
             throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
         }
 
-        if (order.userId !== userId) {
+        // STAFF (Waiter, Chef, Manager) can see any order.
+        // CUSTOMERS can only see their own orders.
+        const isStaff = [UserRole.WAITER, UserRole.CHEF, UserRole.MANAGER].includes(userRole as any);
+        const isCustomerOwnerOfOrdedr = order.userId === userId;
+
+        if (!isStaff && !isCustomerOwnerOfOrdedr) {
             throw new ApiError(
                 httpStatus.FORBIDDEN,
                 'You do not have permission to view this order',
@@ -288,7 +271,7 @@ const deleteOrder = async (orderId: string, userId: string) => {
 };
 
 /**
- * Helper function to convert order status to progress step (0-5)
+ * Helper function to convert order status to progress bar step (0-5)
  */
 const getOrderStep = (status: OrderStatus): number => {
     const steps: { [key in OrderStatus]: number } = {
@@ -314,6 +297,7 @@ const createOrder = async (
             data: {
                 userId,
                 status: OrderStatus.PENDING,
+                orderType: orderData.orderType,
                 totalPrice: orderData.totalPrice,
                 paymentMethod: orderData.paymentMethod,
                 notes: orderData.notes,
@@ -338,63 +322,70 @@ const createOrder = async (
 };
 
 /**
- * Get all orders for a user by status with pagination
+ * Get all orders for a user by status and order Type with pagination
  */
-const getOrderByStatus = async (
+const getOrderByStatusAndOrderType = async (
     userId: string,
-    status: OrderStatus,
+    role: string,   
+    status?: OrderStatus,
     limit: number = 10,
     page: number = 1,
+    orderType?: OrderType,
 ) => {
     try {
         const skip = (page - 1) * limit;
 
-        const orders = await (prisma as any).order.findMany({
-            where: {
-                userId,
-                status,
-            },
-            include: {
-                items: true,
-            },
-            take: limit,
-            skip: skip,
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
+        // 1. Build Dynamic Where Clause
+        const whereClause: any = {};
 
-        const total = await (prisma as any).order.count({
-            where: {
-                userId,
-                status,
-            },
-        });
+        if (role === UserRole.CUSTOMER) {
+            whereClause.userId = userId;
+        }
+
+        if (status) {
+            whereClause.status = status;
+        }
+
+        if (orderType) {
+            whereClause.orderType = orderType;
+        }
+
+        // 2. Parallel Execution (Faster)
+        const [orders, total] = await Promise.all([
+            (prisma as any).order.findMany({
+                where: whereClause,
+                include: { items: true },
+                take: limit,
+                skip: skip,
+                orderBy: { createdAt: 'desc' },
+            }),
+            (prisma as any).order.count({
+                where: whereClause,
+            }),
+        ]);
 
         return {
             data: orders,
             meta: {
-                page,
-                limit,
-                total,
-            },
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit)
+                },
         };
     } catch (error) {
         if (error instanceof ApiError) throw error;
-        throw new ApiError(
-            httpStatus.INTERNAL_SERVER_ERROR,
-            'Failed to fetch orders by status',
-        );
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to fetch orders');
     }
 };
 
+
 export const orderStatusService = {
-    getUserOrders,
-    getOrderStats,
+    getOrderStatsByUserID,
     trackOrder,
     getOrderById,
     updateOrder,
     deleteOrder,
     createOrder,
-    getOrderByStatus,
+    getOrderByStatusAndOrderType,
 };

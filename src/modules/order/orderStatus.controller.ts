@@ -3,34 +3,14 @@ import sendResponse from '../../utils/ApiResponse';
 import { orderStatusService } from './orderStatus.service';
 import { JwtPayload } from '../../types/jwt.types';
 
-// Get all orders for the current user with optional filtering and pagination
-const getUserOrders = catchAsync(async (req: any, res) => {
-    const user = req.user as JwtPayload;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const page = parseInt(req.query.page as string) || 1;
-    const status = req.query.status as string | undefined;
 
-    const result = await orderStatusService.getUserOrders(
-        user.id,
-        limit,
-        page,
-        status as any,
-    );
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: 'User orders retrieved successfully',
-        meta: result.meta,
-        data: result.data,
-    });
-});
 
 // Get order statistics for the current user
-const getOrderStats = catchAsync(async (req: any, res) => {
+const getOrderStatsByUserID = catchAsync(async (req: any, res) => {
     const user = req.user as JwtPayload;
+    const userIdtoFindStats = req.params.userId;
 
-    const result = await orderStatusService.getOrderStats(user.id);
+    const result = await orderStatusService.getOrderStatsByUserID(userIdtoFindStats, user.role);
 
     sendResponse(res, {
         statusCode: 200,
@@ -40,12 +20,12 @@ const getOrderStats = catchAsync(async (req: any, res) => {
     });
 });
 
-// Track order status in real-time
+// Track order status in steps (0-5)
 const trackOrder = catchAsync(async (req: any, res) => {
     const { orderId } = req.params;
     const user = req.user as JwtPayload;
 
-    const result = await orderStatusService.trackOrder(orderId, user.id);
+    const result = await orderStatusService.trackOrder(orderId, user.id, user.role);
 
     sendResponse(res, {
         statusCode: 200,
@@ -60,7 +40,7 @@ const getOrderById = catchAsync(async (req: any, res) => {
     const { orderId } = req.params;
     const user = req.user as JwtPayload;
 
-    const result = await orderStatusService.getOrderById(orderId, user.id);
+    const result = await orderStatusService.getOrderById(orderId, user.id, user.role);
 
     sendResponse(res, {
         statusCode: 200,
@@ -119,36 +99,42 @@ const createOrder = catchAsync(async (req: any, res) => {
     });
 });
 
-// Get orders by status
-const getOrderByStatus = catchAsync(async (req: any, res) => {
+// Get orders by status and order type
+// GET /orders/status/:status?limit=10&page=1&orderType=DINE_IN
+const getOrderByStatusAndOrderType = catchAsync(async (req: any, res) => {
     const user = req.user as JwtPayload;
-    const { status } = req.params;
+    
+
+    const { status } = req.params; 
+    
     const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
+    const orderType = req.query.orderType as any;
 
-    const result = await orderStatusService.getOrderByStatus(
+    const result = await orderStatusService.getOrderByStatusAndOrderType(
         user.id,
+        user.role,
         status as any,
         limit,
         page,
+        orderType,
     );
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
-        message: 'Orders retrieved by status successfully',
+        message: 'Orders retrieved successfully',
         meta: result.meta,
         data: result.data,
     });
 });
 
 export const orderStatusController = {
-    getUserOrders,
-    getOrderStats,
+    getOrderStatsByUserID,
     trackOrder,
     getOrderById,
     updateOrder,
     deleteOrder,
     createOrder,
-    getOrderByStatus,
+    getOrderByStatusAndOrderType,
 };

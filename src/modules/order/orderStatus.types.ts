@@ -71,4 +71,7 @@ export interface IOrderStats {
     pendingOrders: number;
     completedOrders: number;
     cancelledOrders: number;
+    confirmedOrders?: number;
+    preparingOrders?: number;
+    readyOrders?: number;
 }

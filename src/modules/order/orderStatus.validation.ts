@@ -28,6 +28,7 @@ const getUserOrdersSchema = z.object({
                 'CANCELLED',
             ])
             .optional(),
+        orderType: z.enum(['DINE_IN','TAKEAWAY']).optional(),
     }),
 });
 
@@ -61,6 +62,7 @@ const updateOrderSchema = z.object({
                 'CANCELLED',
             ])
             .optional(),
+        orderType: z.enum(['DINE_IN','TAKEAWAY']).optional(),
         paymentMethod: z.string().optional(),
         paymentStatus: z.string().optional(),
         notes: z.string().optional(),
@@ -84,6 +86,7 @@ const createOrderSchema = z.object({
             })
         ).min(1, 'At least one item is required'),
         totalPrice: z.number().positive('Total price must be positive'),
+        orderType: z.enum(['DINE_IN','TAKEAWAY']),
         paymentMethod: z.string().optional(),
         notes: z.string().optional(),
         estimatedDeliveryTimeInMinutes: z.number().int().positive().optional(),
@@ -91,7 +94,7 @@ const createOrderSchema = z.object({
 });
 
 // Get order by status
-const getOrderByStatusSchema = z.object({
+const getOrderByStatusAndOrderTypeSchema = z.object({
     params: z.object({
         status: z.enum([
             'PENDING',
@@ -111,6 +114,7 @@ const getOrderByStatusSchema = z.object({
             (val) => !val || /^\d+$/.test(val),
             'Page must be a number'
         ),
+        orderType: z.enum(['DINE_IN','TAKEAWAY']).optional(),
     }),
 });
 
@@ -121,5 +125,5 @@ export const orderStatusValidation = {
     deleteOrderSchema,
     updateOrderSchema,
     createOrderSchema,
-    getOrderByStatusSchema,
+    getOrderByStatusAndOrderTypeSchema,
 };

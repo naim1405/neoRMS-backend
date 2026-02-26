@@ -37,6 +37,12 @@ enum OrderStatus {
     CANCELLED
 }
 
+// New order type enum for dine-in vs takeaway
+enum OrderType {
+    DINE_IN
+    TAKEAWAY
+}
+
 
 
 // Product Enums
@@ -226,6 +232,7 @@ model Order {
     userId                  String
     user                    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
     status                  OrderStatus @default(PENDING)
+    orderType               OrderType   @default(DINE_IN)
     items                   OrderItem[]
     totalPrice              Float
     paymentMethod           String?

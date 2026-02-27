@@ -90,6 +90,27 @@ Enum PaymentStatus {
   REFUNDED
 }
 
+Enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  SEATED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+Enum DiscountType {
+  PERCENTAGE
+  AMOUNT
+}
+
+Enum CouponStatus {
+  ACTIVE
+  EXPIRED
+  REDEEMED
+  INACTIVE
+}
+
 // ─────────────────────────────────────────────
 // TENANT
 // ─────────────────────────────────────────────
@@ -262,6 +283,37 @@ Table Table {
 }
 
 // ─────────────────────────────────────────────
+// RESERVATIONS
+// ─────────────────────────────────────────────
+
+Table Reservation {
+  id           varchar           [pk]
+  scheduledFor timestamp         [not null, note: 'actual slot start']
+  duration     int               [not null, default: 60, note: 'in minutes']
+  partySize    int               [not null]
+  status       ReservationStatus [not null, default: "PENDING"]
+  notes        varchar
+  contactPhone varchar
+  customerId   varchar           [not null, ref: > Customer.userId]
+  tableId      varchar           [not null, ref: > Table.id]
+  restaurantId varchar           [not null, ref: > Restaurant.id]
+  tenantId     varchar           [not null, ref: > Tenant.id]
+  createdAt    timestamp         [not null, default: `now()`]
+  updatedAt    timestamp         [not null]
+  lastUpdatedBy varchar
+  isDeleted    boolean           [not null, default: false]
+  deletedBy    varchar
+
+  indexes {
+    tableId
+    customerId
+    restaurantId
+    tenantId
+    scheduledFor
+  }
+}
+
+// ─────────────────────────────────────────────
 // MENU
 // ─────────────────────────────────────────────
 
@@ -414,6 +466,7 @@ Table Order {
   tenantId                       varchar       [not null, ref: > Tenant.id]
   tableId                        varchar       [ref: > Table.id]
   orderType                      OrderType     [not null]
+  couponId                       varchar       [ref: > Coupon.id]
   createdAt                      timestamp     [not null, default: `now()`]
   updatedAt                      timestamp     [not null]
   lastUpdatedBy                  varchar
@@ -458,5 +511,46 @@ Table OrderItemAddon {
 
   indexes {
     orderItemId
+  }
+}
+
+// ─────────────────────────────────────────────
+// COUPONS
+// ─────────────────────────────────────────────
+
+Table Coupon {
+  id             varchar      [pk]
+  code           varchar      [not null, unique]
+  description    varchar
+  discount       float        [not null]
+  discountType   DiscountType [not null, default: "PERCENTAGE"]
+  validFrom      timestamp    [not null]
+  validUntil     timestamp    [not null]
+  usageLimit     int          [note: 'total global usage cap']
+  usedCount      int          [not null, default: 0]
+  minOrderAmount float        [note: 'minimum order total required']
+  maxDiscount    float        [note: 'cap on discount for PERCENTAGE type']
+  perUserLimit   int          [note: 'max uses per customer']
+  status         CouponStatus [not null, default: "ACTIVE"]
+  tenantId       varchar      [not null, ref: > Tenant.id]
+  restaurantId   varchar      [ref: > Restaurant.id]
+  createdAt      timestamp    [not null, default: `now()`]
+  updatedAt      timestamp    [not null]
+  lastUpdatedBy  varchar
+  isDeleted      boolean      [not null, default: false]
+  deletedBy      varchar
+}
+
+Table CouponUsage {
+  id         varchar   [pk]
+  usedAt     timestamp [not null, default: `now()`]
+  couponId   varchar   [not null, ref: > Coupon.id]
+  customerId varchar   [not null, ref: > Customer.userId]
+  orderId    varchar   [not null, unique, ref: - Order.id]
+
+  indexes {
+    (couponId, customerId, orderId) [unique]
+    couponId
+    customerId
   }
 }

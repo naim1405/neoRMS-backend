@@ -2,6 +2,7 @@ import express from 'express';
 
 const router = express.Router();
 
+import { analyticsRoutes } from '../modules/analytics/analytics.routes';
 import { authRoutes } from '../modules/auth/auth.routes';
 import { inventoryRoutes } from '../modules/inventory/inventory.routes';
 import { menuProductRoutes } from '../modules/menuProduct/menuProduct.routes';
@@ -11,6 +12,10 @@ import { userRoutes } from '../modules/user/user.routes';
 import { dummyRoutes } from '../modules/dummy/dummy.routes';
 
 const allRoutes = [
+    {
+        path: '/analytics',
+        route: analyticsRoutes,
+    },
     {
         path: '/auth',
         route: authRoutes,

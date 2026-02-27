@@ -13,12 +13,6 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-enum Gender {
-    MALE
-    FEMALE
-    OTHER
-}
-
 enum UserRole {
     WAITER
     CHEF
@@ -26,65 +20,82 @@ enum UserRole {
     CUSTOMER
     OWNER
 }
-// Order 
-
-enum OrderStatus {
-    PENDING
-    CONFIRMED
-    PREPARING
-    READY
-    DELIVERED
-    CANCELLED
-}
-
-// New order type enum for dine-in vs takeaway
-enum OrderType {
-    DINE_IN
-    TAKEAWAY
-}
-
-
 
 // Product Enums
 
 enum ProductStatus {
-  AVAILABLE
-  OUT_OF_STOCK
-  DISCONTINUED
-  DRAFT
+    AVAILABLE
+    OUT_OF_STOCK
+    DISCONTINUED
+    DRAFT
 }
 
 enum Category {
-  STARTER
-  MAIN_COURSE
-  DESSERT
-  BEVERAGE
-  SIDE
+    STARTER
+    MAIN_COURSE
+    DESSERT
+    BEVERAGE
+    SIDE
 }
 
 enum DietaryTag {
-  VEGETARIAN
-  VEGAN
-  HALAL
-  GLUTEN_FREE
-  DAIRY_FREE
-  NUT_FREE
+    VEGETARIAN
+    VEGAN
+    HALAL
+    GLUTEN_FREE
+    DAIRY_FREE
+    NUT_FREE
 }
 
 enum VariantType {
-  SMALL
-  MEDIUM
-  LARGE
-  FAMILY
-  SPECIAL
+    SMALL
+    MEDIUM
+    LARGE
+    FAMILY
+    SPECIAL
 }
 
 enum Currency {
-  USD
-  EUR
-  GBP
-  BDT
-  INR
+    USD
+    EUR
+    GBP
+    BDT
+    INR
+}
+
+enum IngredientUnit {
+    GRAM
+    KILOGRAM
+    LITER
+    MILLILITER
+    PIECE
+}
+
+// Tenant model
+model Tenant {
+    id                 String  @id @default(uuid())
+    name               String
+    slug               String  @unique
+    plan               String  @default("free")
+    subscriptionStatus String  @default("active")
+    isActive           Boolean @default(true)
+
+    owner               Owner?
+    restaurants         Restaurant[]
+    customers           Customer[]
+    chefs               Chef[]
+    waiters             Waiter[]
+    managers            Manager[]
+    menuProducts        MenuProduct[]
+    restaurantInventory RestaurantInventory[]
+    tables              Table[]
+    orders              Order[]
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
 }
 
 // User model
@@ -100,161 +111,460 @@ model User {
     refreshToken    String?
     verificationOTP Int?
 
-    // order
-    orders          Order[]
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    // Relations
-    associatedRestaurants AssociatedRestaurant[]
-    reviews               Review[]
-}
-
-model AssociatedRestaurant {
-    id            String     @id @default(uuid())
-    userId        String
-    restaurantId  String
-
-    user          User       @relation(fields: [userId], references: [id])
-    restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+    Owner    Owner?
+    Customer Customer?
+    Chef     Chef?
+    Waiter   Waiter?
+    Manager  Manager?
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+}
+
+model Owner {
+    id     String @id @default(uuid())
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id])
+
+    tenantId String @unique
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    restaurants Restaurant[]
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
 
     @@index([userId])
+    @@index([tenantId])
+}
+
+model Customer {
+    id     String @id @default(uuid())
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id])
+
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    restaurants String[]
+    reviews     Review[]
+    orders      Order[]
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@index([userId])
+    @@index([tenantId])
+}
+
+model Chef {
+    id     String @id @default(uuid())
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id])
+
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@index([userId])
+    @@index([tenantId])
+    @@index([restaurantId])
+}
+
+model Waiter {
+    id     String @id @default(uuid())
+    userId String @unique
+
+    user User @relation(fields: [userId], references: [id])
+
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@index([userId])
+    @@index([tenantId])
+    @@index([restaurantId])
+}
+
+model Manager {
+    id     String @id @default(uuid())
+    userId String @unique
+
+    user User @relation(fields: [userId], references: [id])
+
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@index([userId])
+    @@index([tenantId])
     @@index([restaurantId])
 }
 
 // Restaurant model
 model Restaurant {
-    id          String   @id @default(uuid())
+    id          String  @id @default(uuid())
     name        String
     tagline     String?
     description String?
     location    String?
     contactInfo String?
     bannerImage String?
-    
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-    
-    // Relations
-    menuProducts          MenuProduct[]
-    associatedRestaurants AssociatedRestaurant[]
-}
 
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    ownerId             String
+    owner               Owner                 @relation(fields: [ownerId], references: [userId])
+    chefs               Chef[]
+    waiters             Waiter[]
+    menuProducts        MenuProduct[]
+    restaurantInventory RestaurantInventory[]
+    managers            Manager[]
+    tables              Table[]
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+    orders        Order[]
+
+    @@index([tenantId])
+    @@index([ownerId])
+}
 
 // Product model
 model MenuProduct {
-  id                    String        @id @default(uuid())
-  restaurantId          String
-  restaurant            Restaurant    @relation(fields: [restaurantId], references: [id])
+    id           String     @id @default(uuid())
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
 
-  productTitle          String
-  productDescription    String?
-  estimatedCookingTime  Int?          // in minutes
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
 
-  userRating            Float?        // average rating
-  aiRating              Float?
+    productTitle         String
+    productDescription   String?
+    estimatedCookingTime Int? // in minutes
 
-  status                ProductStatus
-  priceCurrency         Currency
-  category              Category
-  dietaryTags           DietaryTag[]
+    userRating Float? // average rating
+    aiRating   Float?
 
-  images                String[]
+    status        ProductStatus
+    priceCurrency Currency
+    basePrice     Float? // used when product has no variants
+    category      Category
+    dietaryTags   DietaryTag[]
 
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+    images String[]
 
-  // Relations
-  reviews               Review[]
-  ingredients           Ingredient[]
-  variants              Variant[]
-  addons                Addon[]
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
 
-  @@index([restaurantId])
+    // Relations
+    reviews     Review[]
+    ingredients MenuProductIngredient[]
+    variants    Variant[]
+    addons      Addon[]
+    orders      OrderItem[]
+
+    @@index([restaurantId])
+    @@index([tenantId])
 }
 
 model Review {
-  id            String      @id @default(uuid())
-  menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
-  menuProductId String
+    id String @id @default(uuid())
 
-  userId        String
-  user          User        @relation(fields: [userId], references: [id])
-  rating        Float
-  comment       String?
+    rating  Float
+    comment String?
 
-  createdAt     DateTime    @default(now())
+    customerId    String
+    customer      Customer    @relation(fields: [customerId], references: [userId])
+    menuProductId String
+    menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
 
-  @@index([menuProductId])
-  @@index([userId])
+    updatedAt     DateTime @updatedAt
+    createdAt     DateTime @default(now())
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@unique([customerId, menuProductId])
+    @@index([menuProductId])
+    @@index([customerId])
 }
 
-model Ingredient {
-  id            String      @id @default(uuid())
-  name          String
+// Catalog of all possible ingredients (restaurant-agnostic)
+model InventoryIngredient {
+    id   String         @id @default(uuid())
+    name String         @unique
+    unit IngredientUnit
 
-  menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
-  menuProductId String
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
 
-  @@index([menuProductId])
+    // Relations
+    restaurantInventories  RestaurantInventory[]
+    menuProductIngredients MenuProductIngredient[]
+}
+
+// Tracks how much of each ingredient a specific restaurant has in stock
+model RestaurantInventory {
+    id                String @id @default(uuid())
+    availableQuantity Float
+    thresholdQuantity Float  @default(0)
+
+    restaurantId String
+    restaurant   Restaurant          @relation(fields: [restaurantId], references: [id])
+    ingredientId String
+    ingredient   InventoryIngredient @relation(fields: [ingredientId], references: [id])
+
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@unique([restaurantId, ingredientId])
+    @@index([restaurantId])
+    @@index([ingredientId])
+    @@index([tenantId])
+}
+
+// Defines how much of each ingredient a menu product requires
+model MenuProductIngredient {
+    id               String @id @default(uuid())
+    requiredQuantity Float
+
+    menuProductId String
+    menuProduct   MenuProduct         @relation(fields: [menuProductId], references: [id])
+    ingredientId  String
+    ingredient    InventoryIngredient @relation(fields: [ingredientId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@unique([menuProductId, ingredientId])
+    @@index([menuProductId])
+    @@index([ingredientId])
 }
 
 model Variant {
-  id            String       @id @default(uuid())
-  type          VariantType
-  price         Float
-  discount      Float?
+    id       String      @id @default(uuid())
+    type     VariantType
+    price    Float
+    discount Float?
 
-  menuProduct   MenuProduct  @relation(fields: [menuProductId], references: [id])
-  menuProductId String
+    menuProductId String
+    menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
 
-  @@index([menuProductId])
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    orderItems OrderItem[]
+
+    @@unique([menuProductId, type])
+    @@index([menuProductId])
 }
 
 model Addon {
-  id            String       @id @default(uuid())
-  name          String
-  price         Float
+    id    String @id @default(uuid())
+    name  String
+    price Float
 
-  menuProduct   MenuProduct  @relation(fields: [menuProductId], references: [id])
-  menuProductId String
+    menuProductId String
+    menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
 
-  @@index([menuProductId])
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    orderItemAddons OrderItemAddon[]
+
+    @@index([menuProductId])
+}
+
+enum OrderType {
+    DINE_IN
+    TAKEAWAY
+    DELIVERY
+}
+
+// Order 
+enum OrderStatus {
+    PENDING
+    CONFIRMED
+    PREPARING
+    READY
+    DELIVERED
+    CANCELLED
+}
+
+enum PaymentMethod {
+    CASH
+    CARD
+    MOBILE_PAYMENT
+    ONLINE_PAYMENT
+}
+
+enum PaymentStatus {
+    PENDING
+    COMPLETED
+    FAILED
+    REFUNDED
+}
+
+model Table {
+    id          String @id @default(uuid())
+    tableNumber Int
+    capacity    Int?
+
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    orders Order[]
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@unique([restaurantId, tableNumber])
+    @@index([restaurantId])
+    @@index([tenantId])
 }
 
 // Order model
 model Order {
-    id                      String      @id @default(uuid())
-    userId                  String
-    user                    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-    status                  OrderStatus @default(PENDING)
-    orderType               OrderType   @default(DINE_IN)
-    items                   OrderItem[]
-    totalPrice              Float
-    paymentMethod           String?
-    paymentStatus           String?
-    notes                   String?
-    estimatedDeliveryTimeInMinutes   Int? // in minutes
+    id                             String        @id @default(uuid())
+    status                         OrderStatus   @default(PENDING)
+    items                          OrderItem[]
+    totalPrice                     Float
+    paymentMethod                  PaymentMethod
+    paymentStatus                  PaymentStatus @default(PENDING)
+    notes                          String?
+    estimatedDeliveryTimeInMinutes Int? // in minutes
 
-    createdAt               DateTime    @default(now())
-    updatedAt               DateTime    @updatedAt
+    customerId   String
+    customer     Customer   @relation(fields: [customerId], references: [userId], onDelete: Restrict)
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Restrict)
+
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    tableId   String?
+    table     Table?    @relation(fields: [tableId], references: [id])
+    orderType OrderType
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@index([tenantId])
+    @@index([restaurantId])
+    @@index([customerId])
 }
 
 // Order Item model
 model OrderItem {
-    id          String  @id @default(uuid())
-    orderId     String
-    order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-    menuItemId  String
+    id          String       @id @default(uuid())
     name        String
     quantity    Int
-    price       Float
+    price       Float // snapshot of price at time of order
     notes       String?
+    variantType VariantType? // snapshot of selected variant
 
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+    orderId String
+    order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+    menuItemId String
+    menuItem   MenuProduct @relation(fields: [menuItemId], references: [id])
+
+    variantId String?
+    variant   Variant? @relation(fields: [variantId], references: [id])
+
+    selectedAddons OrderItemAddon[]
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+}
+
+model OrderItemAddon {
+    id    String @id @default(uuid())
+    name  String // snapshot
+    price Float // snapshot
+
+    orderItemId String
+    orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+    addonId String?
+    addon   Addon?  @relation(fields: [addonId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@index([orderItemId])
 }

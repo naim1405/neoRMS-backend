@@ -1,11 +1,16 @@
+import httpstatus from 'http-status';
 import sendResponse from '../../utils/ApiResponse';
 import catchAsync from '../../utils/catchAsync';
 import { restaurantService } from './restaurant.service';
+import { JwtPayload } from '../../types/jwt.types';
 
 const createRestaurant = catchAsync(async (req, res) => {
-    const result = await restaurantService.createRestaurant(req.body);
+    const result = await restaurantService.createRestaurant(
+        req.body,
+        req.user as JwtPayload,
+    );
     sendResponse(res, {
-        statusCode: 201,
+        statusCode: httpstatus.CREATED,
         success: true,
         message: 'Restaurant created successfully',
         data: result,
@@ -18,7 +23,7 @@ const updateRestaurant = catchAsync(async (req, res) => {
         req.body,
     );
     sendResponse(res, {
-        statusCode: 200,
+        statusCode: httpstatus.OK,
         success: true,
         message: 'Restaurant updated successfully',
         data: result,
@@ -26,9 +31,11 @@ const updateRestaurant = catchAsync(async (req, res) => {
 });
 
 const getRestaurantById = catchAsync(async (req, res) => {
-    const result = await restaurantService.getRestaurantById(req.params.id as string);
+    const result = await restaurantService.getRestaurantById(
+        req.params.id as string,
+    );
     sendResponse(res, {
-        statusCode: 200,
+        statusCode: httpstatus.OK,
         success: true,
         message: 'Restaurant fetched successfully',
         data: result,
@@ -38,7 +45,7 @@ const getRestaurantById = catchAsync(async (req, res) => {
 const getAllRestaurants = catchAsync(async (req, res) => {
     const result = await restaurantService.getAllRestaurants();
     sendResponse(res, {
-        statusCode: 200,
+        statusCode: httpstatus.OK,
         success: true,
         message: 'Restaurants fetched successfully',
         data: result,
@@ -50,7 +57,7 @@ const getRestaurantsByUserId = catchAsync(async (req, res) => {
         req.params.userId as string,
     );
     sendResponse(res, {
-        statusCode: 200,
+        statusCode: httpstatus.OK,
         success: true,
         message: 'User restaurants fetched successfully',
         data: result,

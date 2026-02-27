@@ -50,7 +50,28 @@ const getOrderById = catchAsync(async (req: any, res) => {
     });
 });
 
-// Update order (status, payment info, delivery details, etc.)
+// Update order status (status, payment info, delivery details, etc.)
+const updateOrderStatus = catchAsync(async (req: any, res) => {
+    const { orderId } = req.params;
+    const user = req.user as JwtPayload;
+    const { status } = req.body;
+
+    const result = await orderStatusService.updateOrderStatus(
+        orderId,
+        user.id,
+        user.role,
+        status,
+    );
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Order status updated successfully',
+        data: result,
+    });
+});
+
+// update order details (items, total price, payment method, notes, etc.)
 const updateOrder = catchAsync(async (req: any, res) => {
     const { orderId } = req.params;
     const user = req.user as JwtPayload;
@@ -59,6 +80,7 @@ const updateOrder = catchAsync(async (req: any, res) => {
     const result = await orderStatusService.updateOrder(
         orderId,
         user.id,
+        user.role,
         updateData,
     );
 
@@ -75,7 +97,7 @@ const deleteOrder = catchAsync(async (req: any, res) => {
     const { orderId } = req.params;
     const user = req.user as JwtPayload;
 
-    await orderStatusService.deleteOrder(orderId, user.id);
+    await orderStatusService.deleteOrder(orderId, user.id, user.role);
 
     sendResponse(res, {
         statusCode: 200,
@@ -133,6 +155,7 @@ export const orderStatusController = {
     getOrderStatsByUserID,
     trackOrder,
     getOrderById,
+    updateOrderStatus,
     updateOrder,
     deleteOrder,
     createOrder,

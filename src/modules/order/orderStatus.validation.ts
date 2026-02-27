@@ -46,23 +46,30 @@ const deleteOrderSchema = z.object({
     }),
 });
 
-// Update order
+// Update order status
+const updateOrderStatusSchema = z.object({
+    params: z.object({
+        orderId: z.string().uuid('Invalid order ID'),
+    }),
+    body: z.object({
+        status: z.enum([
+            'PENDING',
+            'CONFIRMED',
+            'PREPARING',
+            'READY',
+            'DELIVERED',
+            'CANCELLED',
+        ]),
+    }),
+});
+// update order details
+
 const updateOrderSchema = z.object({
     params: z.object({
         orderId: z.string().uuid('Invalid order ID'),
     }),
     body: z.object({
-        status: z
-            .enum([
-                'PENDING',
-                'CONFIRMED',
-                'PREPARING',
-                'READY',
-                'DELIVERED',
-                'CANCELLED',
-            ])
-            .optional(),
-        orderType: z.enum(['DINE_IN','TAKEAWAY']).optional(),
+        orderType: z.enum(['DINE_IN', 'TAKEAWAY']).optional(),
         paymentMethod: z.string().optional(),
         paymentStatus: z.string().optional(),
         notes: z.string().optional(),
@@ -72,6 +79,7 @@ const updateOrderSchema = z.object({
         'At least one field must be provided for update'
     ),
 });
+
 
 // Create order
 const createOrderSchema = z.object({
@@ -123,6 +131,7 @@ export const orderStatusValidation = {
     getUserOrdersSchema,
     trackOrderSchema,
     deleteOrderSchema,
+    updateOrderStatusSchema,
     updateOrderSchema,
     createOrderSchema,
     getOrderByStatusAndOrderTypeSchema,

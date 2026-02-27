@@ -164,10 +164,11 @@ const getOrderById = async (orderId: string, userId: string, userRole: string): 
 /**
  * Update order with authorization and status transition validation
  */
-const updateOrder = async (
+const updateOrderStatus = async (
     orderId: string,
     userId: string,
-    updatedData: IUpdateOrderRequest,
+    userRole: string,
+    status: OrderStatus,
 ): Promise<IOrder> => {
     try {
         const order = await (prisma as any).order.findUnique({
@@ -183,38 +184,113 @@ const updateOrder = async (
             throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
         }
 
-        if (order.userId !== userId) {
+        const isStaff = [UserRole.WAITER, UserRole.CHEF, UserRole.MANAGER].includes(userRole as any);
+
+        if (!isStaff && order.userId !== userId) {
             throw new ApiError(
                 httpStatus.FORBIDDEN,
                 'You do not have permission to update this order',
             );
         }
 
-        // Validate status transitions if status is being updated
-        if (updatedData.status) {
-            const validTransitions: { [key: string]: OrderStatus[] } = {
-                [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
-                [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
-                [OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.CANCELLED],
-                [OrderStatus.READY]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
-                [OrderStatus.DELIVERED]: [],
-                [OrderStatus.CANCELLED]: [],
-            };
+        const validTransitions: { [key: string]: OrderStatus[] } = {
+            [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+            [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+            [OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.CANCELLED],
+            [OrderStatus.READY]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+            [OrderStatus.DELIVERED]: [],
+            [OrderStatus.CANCELLED]: [],
+        };
 
-            const allowedTransitions = validTransitions[order.status] || [];
-            if (!allowedTransitions.includes(updatedData.status)) {
-                throw new ApiError(
-                    httpStatus.BAD_REQUEST,
-                    `Invalid status transition from ${order.status} to ${updatedData.status}`,
-                );
-            }
+        const allowedTransitions = validTransitions[order.status] || [];
+        if (!allowedTransitions.includes(status)) {
+            throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                `Invalid status transition from ${order.status} to ${status}`,
+            );
         }
 
         const updatedOrder = await (prisma as any).order.update({
             where: {
                 id: orderId,
             },
-            data: updatedData,
+            data: { status },
+            include: {
+                items: true,
+            },
+        });
+
+        return updatedOrder;
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'Failed to update order status',
+        );
+    }
+};
+
+
+/**
+ * Helper function to convert order status to progress bar step (0-5)
+ */
+const getOrderStep = (status: OrderStatus): number => {
+    const steps: { [key in OrderStatus]: number } = {
+        [OrderStatus.PENDING]: 1,
+        [OrderStatus.CONFIRMED]: 2,
+        [OrderStatus.PREPARING]: 3,
+        [OrderStatus.READY]: 4,
+        [OrderStatus.DELIVERED]: 5,
+        [OrderStatus.CANCELLED]: 0,
+    };
+    return steps[status] || 0;
+};
+
+
+/**
+ * Update order 
+ */
+const updateOrder = async (
+    orderId: string,
+    userId: string,
+    userRole: string,
+    updateData: IUpdateOrderRequest,
+): Promise<IOrder> => {
+    try {
+        const order = await (prisma as any).order.findUnique({
+            where: {
+                id: orderId,
+            },
+            include: {
+                items: true,
+            },
+        });
+
+        if (!order) {
+            throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
+        }
+
+        const isStaff = [UserRole.WAITER, UserRole.MANAGER].includes(userRole as any);
+
+        if (!isStaff && order.userId !== userId) {
+            throw new ApiError(
+                httpStatus.FORBIDDEN,
+                'You do not have permission to update this order',
+            );
+        }
+
+        if (order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED || order.status === OrderStatus.READY || order.status === OrderStatus.PREPARING) {
+            throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                'Cannot update an order that is already delivered, cancelled, ready or preparing',
+            );
+        }
+
+        const updatedOrder = await (prisma as any).order.update({
+            where: {
+                id: orderId,
+            },
+            data: updateData,
             include: {
                 items: true,
             },
@@ -230,10 +306,12 @@ const updateOrder = async (
     }
 };
 
+
+
 /**
  * Delete order with ownership verification
  */
-const deleteOrder = async (orderId: string, userId: string) => {
+const deleteOrder = async (orderId: string, userId: string, userRole: string) => {
     try {
         const order = await (prisma as any).order.findUnique({
             where: {
@@ -245,13 +323,23 @@ const deleteOrder = async (orderId: string, userId: string) => {
             throw new ApiError(httpStatus.NOT_FOUND, 'Order not found');
         }
 
-        // Only allow deletion if user is the owner
-        if (order.userId !== userId) {
+        // Only allow deletion if user is the owner or a staff member
+        const isStaff = [UserRole.WAITER, UserRole.MANAGER].includes(userRole as any);
+        if (!isStaff && order.userId !== userId) {
             throw new ApiError(
                 httpStatus.FORBIDDEN,
                 'You do not have permission to delete this order',
             );
         }
+
+        // can not delete order if order is confirmed or preparing or ready
+        if (order.status === OrderStatus.CONFIRMED || order.status === OrderStatus.PREPARING || order.status === OrderStatus.READY) {
+            throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                'Cannot delete an order that is already confirmed, preparing or ready',
+            );
+        }
+
 
         // Delete order (cascading delete handled by Prisma schema)
         await (prisma as any).order.delete({
@@ -268,21 +356,6 @@ const deleteOrder = async (orderId: string, userId: string) => {
             'Failed to delete order',
         );
     }
-};
-
-/**
- * Helper function to convert order status to progress bar step (0-5)
- */
-const getOrderStep = (status: OrderStatus): number => {
-    const steps: { [key in OrderStatus]: number } = {
-        [OrderStatus.PENDING]: 1,
-        [OrderStatus.CONFIRMED]: 2,
-        [OrderStatus.PREPARING]: 3,
-        [OrderStatus.READY]: 4,
-        [OrderStatus.DELIVERED]: 5,
-        [OrderStatus.CANCELLED]: 0,
-    };
-    return steps[status] || 0;
 };
 
 /**
@@ -383,8 +456,9 @@ const getOrderByStatusAndOrderType = async (
 export const orderStatusService = {
     getOrderStatsByUserID,
     trackOrder,
-    getOrderById,
     updateOrder,
+    getOrderById,
+    updateOrderStatus,
     deleteOrder,
     createOrder,
     getOrderByStatusAndOrderType,

@@ -47,38 +47,39 @@ router.get(
 
 // DYNAMIC ROUTES
 
-// Get all orders for the current user with optional filtering
-// GET /orders?limit=10&page=1&status=PENDING&orderType=DINE_IN
-router.get(
-    '/',
-    verifyJwt(),
-    validateRequest(orderStatusValidation.getUserOrdersSchema),
-    orderStatusController.getUserOrders,
-);
 
 // Get single order by ID
 // GET /orders/:orderId
 router.get(
     '/:orderId',
-    verifyJwt(),
+    verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER, UserRole.CHEF),
     validateRequest(orderStatusValidation.getOrderByIdSchema),
     orderStatusController.getOrderById,
 );
 
-// Update order
+// Update order status
 // PUT /orders/:orderId
 router.put(
+    '/:orderId/status',
+    verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER, UserRole.CHEF),
+    validateRequest(orderStatusValidation.updateOrderStatusSchema),
+    orderStatusController.updateOrderStatus,
+);
+
+// update order details
+router.put(
     '/:orderId',
-    verifyJwt(),
+    verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER),
     validateRequest(orderStatusValidation.updateOrderSchema),
     orderStatusController.updateOrder,
 );
+
 
 // Delete order
 // DELETE /orders/:orderId
 router.delete(
     '/:orderId',
-    verifyJwt(),
+    verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER),
     validateRequest(orderStatusValidation.deleteOrderSchema),
     orderStatusController.deleteOrder,
 );

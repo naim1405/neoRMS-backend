@@ -17,14 +17,22 @@ const assertEmailNotTaken = async (email: string) => {
 };
 
 /**
- * Shared helper: get restaurant IDs that belong to the requesting user
+ * Shared helper: get restaurant IDs that belong to the requesting user (any role)
  */
 const getRestaurantIds = async (userId: string): Promise<string[]> => {
-    const associations = await prisma.associatedRestaurant.findMany({
-        where: { userId },
-        select: { restaurantId: true },
-    });
-    return associations.map(a => a.restaurantId);
+    const [chef, waiter, manager, owner] = await Promise.all([
+        prisma.chef.findUnique({ where: { userId }, select: { restaurantId: true } }),
+        prisma.waiter.findUnique({ where: { userId }, select: { restaurantId: true } }),
+        prisma.manager.findUnique({ where: { userId }, select: { restaurantId: true } }),
+        prisma.owner.findUnique({ where: { userId }, include: { restaurants: { select: { id: true } } } }),
+    ]);
+
+    const ids: string[] = [];
+    if (chef) ids.push(chef.restaurantId);
+    if (waiter) ids.push(waiter.restaurantId);
+    if (manager) ids.push(manager.restaurantId);
+    if (owner) ids.push(...owner.restaurants.map(r => r.id));
+    return ids;
 };
 
 // ─── Public signup (CUSTOMER or OWNER only) ────────────────────────────────────
@@ -73,10 +81,8 @@ const createStaffUser = async (
     }
 
     // Verify requester is associated with that restaurant
-    const requesterAssociation = await prisma.associatedRestaurant.findFirst({
-        where: { userId: requesterId, restaurantId: payload.restaurantId },
-    });
-    if (!requesterAssociation) {
+    const requesterRestaurantIds = await getRestaurantIds(requesterId);
+    if (!requesterRestaurantIds.includes(payload.restaurantId)) {
         throw new ApiError(
             httpstatus.FORBIDDEN,
             'You are not associated with this restaurant',
@@ -106,13 +112,15 @@ const createStaffUser = async (
         },
     });
 
-    // Associate the new user with the restaurant
-    await prisma.associatedRestaurant.create({
-        data: {
-            userId: newUser.id,
-            restaurantId: payload.restaurantId,
-        },
-    });
+    // Associate the new user with the restaurant via their role-specific model
+    const tenantId = restaurant.tenantId;
+    if (targetRole === UserRole.CHEF) {
+        await prisma.chef.create({ data: { userId: newUser.id, restaurantId: payload.restaurantId, tenantId } });
+    } else if (targetRole === UserRole.WAITER) {
+        await prisma.waiter.create({ data: { userId: newUser.id, restaurantId: payload.restaurantId, tenantId } });
+    } else if (targetRole === UserRole.MANAGER) {
+        await prisma.manager.create({ data: { userId: newUser.id, restaurantId: payload.restaurantId, tenantId } });
+    }
 
     return newUser;
 };
@@ -146,17 +154,10 @@ const getMyProfile = async (userId: string) => {
             isVerified: true,
             createdAt: true,
             updatedAt: true,
-            associatedRestaurants: {
-                select: {
-                    restaurant: {
-                        select: {
-                            id: true,
-                            name: true,
-                            location: true,
-                        },
-                    },
-                },
-            },
+            Owner: { select: { restaurants: { select: { id: true, name: true, location: true } } } },
+            Chef: { select: { restaurant: { select: { id: true, name: true, location: true } } } },
+            Waiter: { select: { restaurant: { select: { id: true, name: true, location: true } } } },
+            Manager: { select: { restaurant: { select: { id: true, name: true, location: true } } } },
         },
     });
 
@@ -225,25 +226,22 @@ const deleteUser = async (requester: JwtPayload, targetUserId: string) => {
 
     // Ensure the requester shares at least one restaurant with the target user
     const requesterRestaurantIds = await getRestaurantIds(requester.id);
+    const targetRestaurantIds = await getRestaurantIds(targetUserId);
+    const hasSharedRestaurant = requesterRestaurantIds.some(id => targetRestaurantIds.includes(id));
 
-    const sharedAssociation = await prisma.associatedRestaurant.findFirst({
-        where: {
-            userId: targetUserId,
-            restaurantId: { in: requesterRestaurantIds },
-        },
-    });
-
-    if (!sharedAssociation) {
+    if (!hasSharedRestaurant) {
         throw new ApiError(
             httpstatus.FORBIDDEN,
             'You can only manage users within your own restaurant',
         );
     }
 
-    // Remove all restaurant associations for the target user, then delete the user
-    await prisma.associatedRestaurant.deleteMany({
-        where: { userId: targetUserId },
-    });
+    // Remove the role-specific record for the target user, then delete the user
+    await Promise.all([
+        prisma.chef.deleteMany({ where: { userId: targetUserId } }),
+        prisma.waiter.deleteMany({ where: { userId: targetUserId } }),
+        prisma.manager.deleteMany({ where: { userId: targetUserId } }),
+    ]);
 
     await prisma.user.delete({ where: { id: targetUserId } });
 
@@ -254,35 +252,37 @@ const deleteUser = async (requester: JwtPayload, targetUserId: string) => {
 
 const getRestaurantStaff = async (requesterId: string, restaurantId: string) => {
     // Verify requester is associated with this restaurant
-    const association = await prisma.associatedRestaurant.findFirst({
-        where: { userId: requesterId, restaurantId },
-    });
-
-    if (!association) {
+    const requesterRestaurantIds = await getRestaurantIds(requesterId);
+    if (!requesterRestaurantIds.includes(restaurantId)) {
         throw new ApiError(
             httpstatus.FORBIDDEN,
             'You are not associated with this restaurant',
         );
     }
 
-    const staff = await prisma.associatedRestaurant.findMany({
-        where: { restaurantId },
+    const userSelect = {
         select: {
-            user: {
-                select: {
-                    id: true,
-                    email: true,
-                    fullName: true,
-                    role: true,
-                    avatar: true,
-                    isVerified: true,
-                    createdAt: true,
-                },
-            },
+            id: true,
+            email: true,
+            fullName: true,
+            role: true,
+            avatar: true,
+            isVerified: true,
+            createdAt: true,
         },
-    });
+    };
 
-    return staff.map(s => s.user);
+    const [chefs, waiters, managers] = await Promise.all([
+        prisma.chef.findMany({ where: { restaurantId }, select: { user: userSelect } }),
+        prisma.waiter.findMany({ where: { restaurantId }, select: { user: userSelect } }),
+        prisma.manager.findMany({ where: { restaurantId }, select: { user: userSelect } }),
+    ]);
+
+    return [
+        ...chefs.map(c => c.user),
+        ...waiters.map(w => w.user),
+        ...managers.map(m => m.user),
+    ];
 };
 
 export const userService = {

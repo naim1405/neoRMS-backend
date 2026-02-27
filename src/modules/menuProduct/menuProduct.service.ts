@@ -20,6 +20,7 @@ const createMenuProduct = async (
         data: {
             ...productData,
             restaurantId,
+            tenantId: restaurant.tenantId,
             variants: variants
                 ? { create: variants }
                 : undefined,
@@ -106,7 +107,7 @@ const getMenuProductById = async (
             variants: true,
             addons: true,
             ingredients: { include: { ingredient: true } },
-            reviews: { include: { user: { select: { id: true, fullName: true, avatar: true } } } },
+            reviews: { include: { customer: { include: { user: { select: { id: true, fullName: true, avatar: true } } } } } },
         },
     });
     if (!menuProduct) {

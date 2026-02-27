@@ -68,12 +68,20 @@ const createRestaurantInventory = async (
         );
     }
 
+    const restaurant = await prisma.restaurant.findUnique({
+        where: { id: restaurantId },
+        select: { tenantId: true },
+    });
+
     return prisma.restaurantInventory.create({
         data: {
             restaurantId,
             ingredientId,
+            tenantId: restaurant!.tenantId,
             availableQuantity: payload.availableQuantity,
-            thresholdQuantity: payload.thresholdQuantity,
+            ...(payload.thresholdQuantity !== undefined && {
+                thresholdQuantity: payload.thresholdQuantity,
+            }),
         },
         include: { ingredient: true },
     });

@@ -97,12 +97,17 @@ const deleteUser = catchAsync(async (req: any, res) => {
 const getRestaurantStaff = catchAsync(async (req: any, res) => {
     const requester = req.user as JwtPayload;
     const { restaurantId } = req.params;
+    const tenantId = req.tenantId;
 
     if (!restaurantId) {
         throw new ApiError(httpstatus.BAD_REQUEST, 'Restaurant ID is required');
     }
 
-    const result = await userService.getRestaurantStaff(requester.id, restaurantId);
+    const result = await userService.getRestaurantStaff(
+        requester.id,
+        restaurantId,
+        tenantId,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.OK,

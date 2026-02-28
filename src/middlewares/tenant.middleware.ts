@@ -102,6 +102,9 @@ async function verifyAccess(user: JwtPayload | SocketUser, tenantId: string) {
                 id: tenantId,
             },
         });
+        if (tenant) {
+            accessVerified = true;
+        }
     }
 
     return accessVerified;

@@ -3,12 +3,20 @@ import httpstatus from 'http-status';
 import prisma from '../../utils/prisma';
 import { ICreateRestaurant, IUpdateRestaurant } from './restaurant.types';
 import { JwtPayload } from '../../types/jwt.types';
+import { generateSlugWithNanoId } from '../../utils/identifier';
 
 const createRestaurant = async (
     payload: ICreateRestaurant,
     user: JwtPayload,
 ) => {
-    const result = await prisma.$transaction(async tx => {
+    const restaurant = await prisma.$transaction(async tx => {
+        const tenant = await tx.tenant.create({
+            data: {
+                name: payload.name,
+                ownerId: user.id,
+                slug: generateSlugWithNanoId(payload.name),
+            },
+        });
         const restaurant = await tx.restaurant.create({
             data: {
                 name: payload.name,
@@ -17,23 +25,25 @@ const createRestaurant = async (
                 location: payload.location,
                 contactInfo: payload.contactInfo,
                 bannerImage: payload.bannerImage,
-            },
-        });
-
-        await tx.associatedRestaurant.create({
-            data: {
-                userId: user.id,
-                restaurantId: restaurant.id,
+                ownerId: user.id,
+                tenantId: tenant.id,
             },
         });
 
         return restaurant;
     });
-    return result;
+
+    return restaurant;
 };
 
-const updateRestaurant = async (id: string, payload: IUpdateRestaurant) => {
-    const restaurant = await prisma.restaurant.findUnique({ where: { id } });
+const updateRestaurant = async (
+    id: string,
+    payload: IUpdateRestaurant,
+    tenantId: string,
+) => {
+    const restaurant = await prisma.restaurant.findUnique({
+        where: { id, tenantId },
+    });
     if (!restaurant) {
         throw new ApiError(httpstatus.NOT_FOUND, 'Restaurant not found');
     }
@@ -48,7 +58,18 @@ const updateRestaurant = async (id: string, payload: IUpdateRestaurant) => {
 const getRestaurantById = async (id: string) => {
     const restaurant = await prisma.restaurant.findUnique({
         where: { id },
-        include: { menuProducts: true },
+        select: {
+            id: true,
+            tenantId: true,
+            name: true,
+            tagline: true,
+            description: true,
+            location: true,
+            contactInfo: true,
+            bannerImage: true,
+            menuProducts: true,
+            tables: true,
+        },
     });
     if (!restaurant) {
         throw new ApiError(httpstatus.NOT_FOUND, 'Restaurant not found');
@@ -58,21 +79,50 @@ const getRestaurantById = async (id: string) => {
 
 const getAllRestaurants = async () => {
     const restaurants = await prisma.restaurant.findMany({
-        include: { menuProducts: true },
+        select: {
+            id: true,
+            tenantId: true,
+            name: true,
+            tagline: true,
+            description: true,
+            location: true,
+            contactInfo: true,
+            bannerImage: true,
+        },
     });
     return restaurants;
 };
 
-const getRestaurantsByUserId = async (userId: string) => {
-    const associated = await prisma.associatedRestaurant.findMany({
-        where: { userId },
-        include: {
-            restaurant: {
-                include: { menuProducts: true },
-            },
-        },
-    });
-    return associated.map(a => a.restaurant);
+const getRestaurantsByUserId = async (user: JwtPayload) => {
+    const userId = user.id;
+    const [ownerRecord, chefRecord, waiterRecord, managerRecord] =
+        await Promise.all([
+            prisma.owner.findUnique({
+                where: { userId, isDeleted: false },
+                include: { restaurants: { include: { menuProducts: true } } },
+            }),
+            prisma.chef.findUnique({
+                where: { userId, isDeleted: false },
+                include: { restaurant: { include: { menuProducts: true } } },
+            }),
+            prisma.waiter.findUnique({
+                where: { userId, isDeleted: false },
+                include: { restaurant: { include: { menuProducts: true } } },
+            }),
+            prisma.manager.findUnique({
+                where: { userId, isDeleted: false },
+                include: { restaurant: { include: { menuProducts: true } } },
+            }),
+        ]);
+
+    const restaurants = [
+        ...(ownerRecord?.restaurants ?? []),
+        ...(chefRecord ? [chefRecord.restaurant] : []),
+        ...(waiterRecord ? [waiterRecord.restaurant] : []),
+        ...(managerRecord ? [managerRecord.restaurant] : []),
+    ];
+
+    return restaurants;
 };
 
 export const restaurantService = {

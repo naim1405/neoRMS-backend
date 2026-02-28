@@ -4,6 +4,7 @@ import { verifyJwt } from '../../middlewares/auth.middleware';
 import validateRequest from '../../middlewares/validateRequest';
 import { inventoryController } from './inventory.controller';
 import { inventoryValidation } from './inventory.validation';
+import { verifyTenantAccess } from '../../middlewares/tenant.middleware';
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ const staffRoles = [UserRole.OWNER, UserRole.MANAGER, UserRole.CHEF];
 
 // ── InventoryIngredient ───────────────────────────────────────────────────────
 
-// GET /inventory/inventoryIngredient
+// GET /inventory/inventoryIngredient  (global lookup table — no tenant scope)
 router.get(
     '/inventoryIngredient',
     verifyJwt(...staffRoles),
@@ -24,6 +25,7 @@ router.get(
 router.get(
     '/restaurantInventory/:restaurantId',
     verifyJwt(...staffRoles),
+    verifyTenantAccess,
     inventoryController.getRestaurantInventory,
 );
 
@@ -31,6 +33,7 @@ router.get(
 router.post(
     '/restaurantInventory/:restaurantId',
     verifyJwt(...staffRoles),
+    verifyTenantAccess,
     validateRequest(inventoryValidation.createRestaurantInventorySchema),
     inventoryController.createRestaurantInventory,
 );
@@ -39,6 +42,7 @@ router.post(
 router.patch(
     '/restaurantInventory/:restaurantId/:restaurantInventoryId',
     verifyJwt(...staffRoles),
+    verifyTenantAccess,
     validateRequest(inventoryValidation.updateRestaurantInventorySchema),
     inventoryController.updateRestaurantInventory,
 );
@@ -47,6 +51,7 @@ router.patch(
 router.delete(
     '/restaurantInventory/:restaurantId/:restaurantInventoryId',
     verifyJwt(...staffRoles),
+    verifyTenantAccess,
     inventoryController.deleteRestaurantInventory,
 );
 
@@ -54,6 +59,7 @@ router.delete(
 router.patch(
     '/restaurantInventory/:restaurantId/:restaurantInventoryId/add',
     verifyJwt(...staffRoles),
+    verifyTenantAccess,
     validateRequest(inventoryValidation.adjustQuantitySchema),
     inventoryController.addQuantity,
 );
@@ -62,6 +68,7 @@ router.patch(
 router.patch(
     '/restaurantInventory/:restaurantId/:restaurantInventoryId/subtract',
     verifyJwt(...staffRoles),
+    verifyTenantAccess,
     validateRequest(inventoryValidation.adjustQuantitySchema),
     inventoryController.subtractQuantity,
 );

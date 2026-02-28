@@ -3,10 +3,11 @@ import sendResponse from '../../utils/ApiResponse';
 import catchAsync from '../../utils/catchAsync';
 import { menuProductService } from './menuProduct.service';
 
-const createMenuProduct = catchAsync(async (req, res) => {
+const createMenuProduct = catchAsync(async (req: any, res: any) => {
     const result = await menuProductService.createMenuProduct(
         req.params.restaurantId as string,
         req.body,
+        req.tenantId as string,
     );
     sendResponse(res, {
         statusCode: httpstatus.CREATED,
@@ -16,11 +17,12 @@ const createMenuProduct = catchAsync(async (req, res) => {
     });
 });
 
-const updateMenuProduct = catchAsync(async (req, res) => {
+const updateMenuProduct = catchAsync(async (req: any, res) => {
     const result = await menuProductService.updateMenuProduct(
         req.params.menuProductId as string,
         req.params.restaurantId as string,
         req.body,
+        req.tenantId as string,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -30,10 +32,11 @@ const updateMenuProduct = catchAsync(async (req, res) => {
     });
 });
 
-const deleteMenuProduct = catchAsync(async (req, res) => {
+const deleteMenuProduct = catchAsync(async (req: any, res) => {
     await menuProductService.deleteMenuProduct(
         req.params.menuProductId as string,
         req.params.restaurantId as string,
+        req.tenantId as string,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,

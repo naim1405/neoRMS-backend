@@ -1,16 +1,14 @@
 import { Server } from 'socket.io';
-import {
-    ensureAssociatedRestaurant,
-    verifyJwt,
-} from '../middlewares/socket.middleware';
+import { verifyJwtSocket } from '../middlewares/auth.middleware';
+import { verifyTenantAccessSocket } from '../middlewares/tenant.middleware';
 import { UserRole } from '@prisma/client';
 import { SOCKET_NAMESPACES } from './socket.types';
 
 export const setupCustomerSocketNamespace = (io: Server) => {
     const customerSocket = io.of(SOCKET_NAMESPACES.CUSTOMER);
     // Apply the JWT verification middleware to the customer namespace
-    customerSocket.use(verifyJwt(UserRole.CUSTOMER));
-    customerSocket.use(ensureAssociatedRestaurant);
+    customerSocket.use(verifyJwtSocket(UserRole.CUSTOMER));
+    customerSocket.use(verifyTenantAccessSocket);
     //
     customerSocket.on('connection', async socket => {
         console.log(
@@ -19,8 +17,8 @@ export const setupCustomerSocketNamespace = (io: Server) => {
             'user:',
             socket.user?.id,
         );
-        const room = socket.data.restaurantId;
-        socket.join(room); // Join a room based on the user ID for targeted messaging
+        const room = socket.data.tenantId;
+        socket.join(room); // Join a room based on the tenant ID for targeted messaging
         socket.emit('connected', {
             message: 'Welcome to the customer socket namespace!',
         });

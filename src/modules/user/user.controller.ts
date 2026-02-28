@@ -18,7 +18,11 @@ const signup = catchAsync(async (req, res) => {
 
 const createManager = catchAsync(async (req: any, res) => {
     const requester = req.user as JwtPayload;
-    const result = await userService.createManager(requester.id, req.body);
+    const result = await userService.createManager(
+        requester.id,
+        req.body,
+        req.tenantId,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.CREATED,
@@ -30,7 +34,11 @@ const createManager = catchAsync(async (req: any, res) => {
 
 const createChef = catchAsync(async (req: any, res) => {
     const requester = req.user as JwtPayload;
-    const result = await userService.createChef(requester.id, req.body);
+    const result = await userService.createChef(
+        requester.id,
+        req.body,
+        req.tenantId,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.CREATED,
@@ -42,7 +50,11 @@ const createChef = catchAsync(async (req: any, res) => {
 
 const createWaiter = catchAsync(async (req: any, res) => {
     const requester = req.user as JwtPayload;
-    const result = await userService.createWaiter(requester.id, req.body);
+    const result = await userService.createWaiter(
+        requester.id,
+        req.body,
+        req.tenantId,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.CREATED,
@@ -84,7 +96,11 @@ const deleteUser = catchAsync(async (req: any, res) => {
         throw new ApiError(httpstatus.BAD_REQUEST, 'User ID is required');
     }
 
-    const result = await userService.deleteUser(requester, userId);
+    const result = await userService.deleteUser(
+        requester,
+        userId,
+        req.tenantId,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -97,12 +113,17 @@ const deleteUser = catchAsync(async (req: any, res) => {
 const getRestaurantStaff = catchAsync(async (req: any, res) => {
     const requester = req.user as JwtPayload;
     const { restaurantId } = req.params;
+    const tenantId = req.tenantId;
 
     if (!restaurantId) {
         throw new ApiError(httpstatus.BAD_REQUEST, 'Restaurant ID is required');
     }
 
-    const result = await userService.getRestaurantStaff(requester.id, restaurantId);
+    const result = await userService.getRestaurantStaff(
+        requester.id,
+        restaurantId,
+        tenantId,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.OK,

@@ -27,9 +27,9 @@ const buildDateFilter = ({ startDate, endDate }: IDateRange) => {
     };
 };
 
-const assertRestaurantExists = async (restaurantId: string) => {
-    const restaurant = await prisma.restaurant.findUnique({
-        where: { id: restaurantId },
+const assertRestaurantExists = async (restaurantId: string, tenantId: string) => {
+    const restaurant = await prisma.restaurant.findFirst({
+        where: { id: restaurantId, tenantId, isDeleted: false },
     });
     if (!restaurant) {
         throw new ApiError(httpstatus.NOT_FOUND, 'Restaurant not found');
@@ -41,9 +41,10 @@ const assertRestaurantExists = async (restaurantId: string) => {
 
 const getDashboardAnalytics = async (
     restaurantId: string,
+    tenantId: string,
     dateRange: IDateRange,
 ): Promise<IDashboardAnalytics> => {
-    await assertRestaurantExists(restaurantId);
+    await assertRestaurantExists(restaurantId, tenantId);
 
     const dateFilter = buildDateFilter(dateRange);
 
@@ -93,23 +94,25 @@ const getDashboardAnalytics = async (
     const repeatCustomers = Object.values(customerOrderCounts).filter((c) => (c as number) > 1).length;
 
     // Staff by role
-    const associatedUsers = await prisma.associatedRestaurant.findMany({
-        where: { restaurantId },
-        include: { user: { select: { role: true } } },
-    });
-    const staffByRole: Record<string, number> = {};
-    associatedUsers.forEach(({ user }) => {
-        staffByRole[user.role] = (staffByRole[user.role] || 0) + 1;
-    });
+    const [chefCount, waiterCount, managerCount] = await Promise.all([
+        prisma.chef.count({ where: { restaurantId, tenantId, isDeleted: false } }),
+        prisma.waiter.count({ where: { restaurantId, tenantId, isDeleted: false } }),
+        prisma.manager.count({ where: { restaurantId, tenantId, isDeleted: false } }),
+    ]);
+    const staffByRole: Record<string, number> = {
+        CHEF: chefCount,
+        WAITER: waiterCount,
+        MANAGER: managerCount,
+    };
 
     // Low stock count — Prisma doesn't support column-to-column comparisons,
     // so we fetch and filter in memory
     const allInventory = await prisma.restaurantInventory.findMany({
-        where: { restaurantId, thresholdQuantity: { not: null } },
+        where: { restaurantId, tenantId, thresholdQuantity: { gt: 0 }, isDeleted: false },
         select: { availableQuantity: true, thresholdQuantity: true },
     });
     const lowStockAlertCount = allInventory.filter(
-        (inv) => inv.thresholdQuantity !== null && inv.availableQuantity <= inv.thresholdQuantity!,
+        (inv) => inv.availableQuantity <= inv.thresholdQuantity,
     ).length;
 
     return {
@@ -126,9 +129,10 @@ const getDashboardAnalytics = async (
 
 const getOrdersAnalytics = async (
     restaurantId: string,
+    tenantId: string,
     dateRange: IDateRange,
 ): Promise<IOrdersAnalytics> => {
-    await assertRestaurantExists(restaurantId);
+    await assertRestaurantExists(restaurantId, tenantId);
 
     const dateFilter = buildDateFilter(dateRange);
 
@@ -212,9 +216,10 @@ const getOrdersAnalytics = async (
 
 const getMenuAnalytics = async (
     restaurantId: string,
+    tenantId: string,
     dateRange: IDateRange,
 ): Promise<IMenuAnalytics> => {
-    await assertRestaurantExists(restaurantId);
+    await assertRestaurantExists(restaurantId, tenantId);
 
     const dateFilter = buildDateFilter(dateRange);
 
@@ -284,7 +289,7 @@ const getMenuAnalytics = async (
 
     // Products by status
     const menuProducts = await prisma.menuProduct.findMany({
-        where: { restaurantId },
+        where: { restaurantId, tenantId, isDeleted: false },
         select: { status: true },
     });
     const statusMap: Record<string, number> = {};
@@ -298,7 +303,7 @@ const getMenuAnalytics = async (
 
     // Dietary tag breakdown (from menu products, not orders)
     const allMenuProducts = await prisma.menuProduct.findMany({
-        where: { restaurantId },
+        where: { restaurantId, tenantId, isDeleted: false },
         select: { dietaryTags: true },
     });
     const tagMap: Record<string, number> = {};
@@ -314,7 +319,7 @@ const getMenuAnalytics = async (
 
     // Top rated products
     const ratedProducts = await prisma.menuProduct.findMany({
-        where: { restaurantId, userRating: { not: null } },
+        where: { restaurantId, tenantId, userRating: { not: null }, isDeleted: false },
         select: {
             id: true,
             productTitle: true,
@@ -361,11 +366,11 @@ const getMenuAnalytics = async (
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 
-const getInventoryAnalytics = async (restaurantId: string): Promise<IInventoryAnalytics> => {
-    await assertRestaurantExists(restaurantId);
+const getInventoryAnalytics = async (restaurantId: string, tenantId: string): Promise<IInventoryAnalytics> => {
+    await assertRestaurantExists(restaurantId, tenantId);
 
     const inventory = await prisma.restaurantInventory.findMany({
-        where: { restaurantId },
+        where: { restaurantId, tenantId, isDeleted: false },
         include: { ingredient: true },
     });
 
@@ -388,7 +393,7 @@ const getInventoryAnalytics = async (restaurantId: string): Promise<IInventoryAn
     // Most-used ingredients (by number of menu products they appear in)
     const ingredientUsage = await prisma.menuProductIngredient.groupBy({
         by: ['ingredientId'],
-        where: { menuProduct: { restaurantId } },
+        where: { menuProduct: { restaurantId, tenantId, isDeleted: false }, isDeleted: false },
         _count: { menuProductId: true },
         orderBy: { _count: { menuProductId: 'desc' } },
         take: 10,
@@ -419,22 +424,23 @@ const getInventoryAnalytics = async (restaurantId: string): Promise<IInventoryAn
 
 const getRestaurantsAnalytics = async (
     userId: string,
+    tenantId: string,
     dateRange: IDateRange,
 ): Promise<IRestaurantsAnalytics> => {
     const dateFilter = buildDateFilter(dateRange);
 
-    // Get all restaurants associated with this user
-    const associations = await prisma.associatedRestaurant.findMany({
+    // Get all restaurants owned by this user
+    const owner = await prisma.owner.findUnique({
         where: { userId },
-        include: { restaurant: true },
+        include: { restaurants: true },
     });
 
-    if (associations.length === 0) {
+    if (!owner || owner.restaurants.length === 0) {
         return { restaurants: [], bestPerforming: null, worstPerforming: null };
     }
 
     const restaurantList = await Promise.all(
-        associations.map(async ({ restaurant }) => {
+        owner.restaurants.map(async (restaurant) => {
             const restaurantId = restaurant.id;
 
             // Revenue + orders
@@ -454,23 +460,24 @@ const getRestaurantsAnalytics = async (
 
             // Menu product count
             const menuProductCount = await prisma.menuProduct.count({
-                where: { restaurantId },
+                where: { restaurantId, isDeleted: false },
             });
 
             // Staff count
-            const staffCount = await prisma.associatedRestaurant.count({
-                where: { restaurantId },
-            });
+            const [chefCount, waiterCount, managerCount] = await Promise.all([
+                prisma.chef.count({ where: { restaurantId, isDeleted: false } }),
+                prisma.waiter.count({ where: { restaurantId, isDeleted: false } }),
+                prisma.manager.count({ where: { restaurantId, isDeleted: false } }),
+            ]);
+            const staffCount = chefCount + waiterCount + managerCount;
 
             // Low stock count
             const inventory = await prisma.restaurantInventory.findMany({
-                where: { restaurantId, thresholdQuantity: { not: null } },
+                where: { restaurantId, isDeleted: false, thresholdQuantity: { gt: 0 } },
                 select: { availableQuantity: true, thresholdQuantity: true },
             });
             const lowStockCount = inventory.filter(
-                (inv) =>
-                    inv.thresholdQuantity !== null &&
-                    inv.availableQuantity <= inv.thresholdQuantity!,
+                (inv) => inv.availableQuantity <= inv.thresholdQuantity,
             ).length;
 
             return {
@@ -496,6 +503,7 @@ const getRestaurantsAnalytics = async (
 
 const getSummaryAnalytics = async (
     userId: string,
+    tenantId: string,
     restaurantId: string | undefined,
     dateRange: IDateRange,
 ): Promise<IAnalyticsSummary> => {
@@ -504,14 +512,14 @@ const getSummaryAnalytics = async (
     // Determine which restaurants to aggregate over
     let restaurantIds: string[] = [];
     if (restaurantId) {
-        await assertRestaurantExists(restaurantId);
+        await assertRestaurantExists(restaurantId, tenantId);
         restaurantIds = [restaurantId];
     } else {
-        const associations = await prisma.associatedRestaurant.findMany({
+        const owner = await prisma.owner.findUnique({
             where: { userId },
-            select: { restaurantId: true },
+            select: { restaurants: { select: { id: true } } },
         });
-        restaurantIds = associations.map((a) => a.restaurantId);
+        restaurantIds = owner?.restaurants.map((r) => r.id) ?? [];
     }
 
     if (restaurantIds.length === 0) {
@@ -562,19 +570,23 @@ const getSummaryAnalytics = async (
     const allInventory = await prisma.restaurantInventory.findMany({
         where: {
             restaurantId: { in: restaurantIds },
-            thresholdQuantity: { not: null },
+            tenantId,
+            thresholdQuantity: { gt: 0 },
+            isDeleted: false,
         },
         select: { availableQuantity: true, thresholdQuantity: true },
     });
     const lowStockCount = allInventory.filter(
-        (inv) =>
-            inv.thresholdQuantity !== null && inv.availableQuantity <= inv.thresholdQuantity!,
+        (inv) => inv.availableQuantity <= inv.thresholdQuantity,
     ).length;
 
     // Total staff
-    const totalStaff = await prisma.associatedRestaurant.count({
-        where: { restaurantId: { in: restaurantIds } },
-    });
+    const [chefCountTotal, waiterCountTotal, managerCountTotal] = await Promise.all([
+        prisma.chef.count({ where: { restaurantId: { in: restaurantIds }, tenantId, isDeleted: false } }),
+        prisma.waiter.count({ where: { restaurantId: { in: restaurantIds }, tenantId, isDeleted: false } }),
+        prisma.manager.count({ where: { restaurantId: { in: restaurantIds }, tenantId, isDeleted: false } }),
+    ]);
+    const totalStaff = chefCountTotal + waiterCountTotal + managerCountTotal;
 
     return {
         totalRevenue,

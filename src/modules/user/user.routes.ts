@@ -4,6 +4,7 @@ import validateRequest from '../../middlewares/validateRequest';
 import { userValidation } from './user.validation';
 import { verifyJwt } from '../../middlewares/auth.middleware';
 import { UserRole } from '@prisma/client';
+import { verifyTenantAccess } from '../../middlewares/tenant.middleware';
 
 const router = express.Router();
 
@@ -19,11 +20,7 @@ router.post(
 // ─── Authenticated ────────────────────────────────────────────────────────────
 
 // Get own profile
-router.get(
-    '/me',
-    verifyJwt(),
-    userController.getMyProfile,
-);
+router.get('/me', verifyJwt(), userController.getMyProfile);
 
 // Update own profile
 router.patch(
@@ -37,6 +34,7 @@ router.patch(
 router.get(
     '/restaurant/:restaurantId/staff',
     verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
     userController.getRestaurantStaff,
 );
 
@@ -46,6 +44,7 @@ router.get(
 router.post(
     '/staff/manager',
     verifyJwt(UserRole.OWNER),
+    verifyTenantAccess,
     validateRequest(userValidation.createStaffSchema),
     userController.createManager,
 );
@@ -54,6 +53,7 @@ router.post(
 router.post(
     '/staff/chef',
     verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
     validateRequest(userValidation.createStaffSchema),
     userController.createChef,
 );
@@ -62,6 +62,7 @@ router.post(
 router.post(
     '/staff/waiter',
     verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
     validateRequest(userValidation.createStaffSchema),
     userController.createWaiter,
 );
@@ -72,6 +73,7 @@ router.post(
 router.delete(
     '/:userId',
     verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
     userController.deleteUser,
 );
 

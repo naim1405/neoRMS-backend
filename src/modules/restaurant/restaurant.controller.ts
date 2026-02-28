@@ -17,10 +17,11 @@ const createRestaurant = catchAsync(async (req, res) => {
     });
 });
 
-const updateRestaurant = catchAsync(async (req, res) => {
+const updateRestaurant = catchAsync(async (req: any, res: any) => {
     const result = await restaurantService.updateRestaurant(
         req.params.id as string,
         req.body,
+        req.tenantId as string,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -54,7 +55,7 @@ const getAllRestaurants = catchAsync(async (req, res) => {
 
 const getRestaurantsByUserId = catchAsync(async (req, res) => {
     const result = await restaurantService.getRestaurantsByUserId(
-        req.params.userId as string,
+        req.user as JwtPayload,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,

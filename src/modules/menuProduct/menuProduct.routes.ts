@@ -4,17 +4,22 @@ import { verifyJwt } from '../../middlewares/auth.middleware';
 import validateRequest from '../../middlewares/validateRequest';
 import { menuProductController } from './menuProduct.controller';
 import { menuProductValidation } from './menuProduct.validation';
+import { verifyTenantAccess } from '../../middlewares/tenant.middleware';
 
 const router = express.Router({ mergeParams: true });
 
 // Public routes - no auth required
 router.get('/:restaurantId', menuProductController.getMenuProductsByRestaurant);
-router.get('/:restaurantId/:menuProductId', menuProductController.getMenuProductById);
+router.get(
+    '/:restaurantId/:menuProductId',
+    menuProductController.getMenuProductById,
+);
 
 // Protected routes - MANAGER or OWNER only
 router.post(
     '/:restaurantId',
     verifyJwt(UserRole.MANAGER, UserRole.OWNER),
+    verifyTenantAccess,
     validateRequest(menuProductValidation.createMenuProductSchema),
     menuProductController.createMenuProduct,
 );
@@ -22,6 +27,7 @@ router.post(
 router.patch(
     '/:restaurantId/:menuProductId',
     verifyJwt(UserRole.MANAGER, UserRole.OWNER),
+    verifyTenantAccess,
     validateRequest(menuProductValidation.updateMenuProductSchema),
     menuProductController.updateMenuProduct,
 );
@@ -29,6 +35,7 @@ router.patch(
 router.delete(
     '/:restaurantId/:menuProductId',
     verifyJwt(UserRole.MANAGER, UserRole.OWNER),
+    verifyTenantAccess,
     menuProductController.deleteMenuProduct,
 );
 

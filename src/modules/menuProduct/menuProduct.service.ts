@@ -6,9 +6,10 @@ import { ICreateMenuProduct, IUpdateMenuProduct } from './menuProduct.types';
 const createMenuProduct = async (
     restaurantId: string,
     payload: ICreateMenuProduct,
+    tenantId: string,
 ) => {
     const restaurant = await prisma.restaurant.findUnique({
-        where: { id: restaurantId },
+        where: { id: restaurantId, tenantId, isDeleted: false },
     });
     if (!restaurant) {
         throw new ApiError(httpstatus.NOT_FOUND, 'Restaurant not found');
@@ -21,12 +22,8 @@ const createMenuProduct = async (
             ...productData,
             restaurantId,
             tenantId: restaurant.tenantId,
-            variants: variants
-                ? { create: variants }
-                : undefined,
-            addons: addons
-                ? { create: addons }
-                : undefined,
+            variants: variants ? { create: variants } : undefined,
+            addons: addons ? { create: addons } : undefined,
         },
         include: {
             variants: true,
@@ -41,9 +38,10 @@ const updateMenuProduct = async (
     menuProductId: string,
     restaurantId: string,
     payload: IUpdateMenuProduct,
+    tenantId: string,
 ) => {
     const menuProduct = await prisma.menuProduct.findFirst({
-        where: { id: menuProductId, restaurantId },
+        where: { id: menuProductId, restaurantId, tenantId, isDeleted: false },
     });
     if (!menuProduct) {
         throw new ApiError(httpstatus.NOT_FOUND, 'Menu product not found');
@@ -65,9 +63,10 @@ const updateMenuProduct = async (
 const deleteMenuProduct = async (
     menuProductId: string,
     restaurantId: string,
+    tenantId: string,
 ) => {
     const menuProduct = await prisma.menuProduct.findFirst({
-        where: { id: menuProductId, restaurantId },
+        where: { id: menuProductId, restaurantId, tenantId, isDeleted: false },
     });
     if (!menuProduct) {
         throw new ApiError(httpstatus.NOT_FOUND, 'Menu product not found');
@@ -78,14 +77,14 @@ const deleteMenuProduct = async (
 
 const getMenuProductsByRestaurant = async (restaurantId: string) => {
     const restaurant = await prisma.restaurant.findUnique({
-        where: { id: restaurantId },
+        where: { id: restaurantId, isDeleted: false },
     });
     if (!restaurant) {
         throw new ApiError(httpstatus.NOT_FOUND, 'Restaurant not found');
     }
 
     const menuProducts = await prisma.menuProduct.findMany({
-        where: { restaurantId },
+        where: { restaurantId, isDeleted: false },
         include: {
             variants: true,
             addons: true,
@@ -102,12 +101,26 @@ const getMenuProductById = async (
     restaurantId: string,
 ) => {
     const menuProduct = await prisma.menuProduct.findFirst({
-        where: { id: menuProductId, restaurantId },
+        where: { id: menuProductId, restaurantId, isDeleted: false },
         include: {
             variants: true,
             addons: true,
             ingredients: { include: { ingredient: true } },
-            reviews: { include: { customer: { include: { user: { select: { id: true, fullName: true, avatar: true } } } } } },
+            reviews: {
+                include: {
+                    customer: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    fullName: true,
+                                    avatar: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         },
     });
     if (!menuProduct) {

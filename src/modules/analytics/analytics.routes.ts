@@ -4,6 +4,8 @@ import { verifyJwt } from '../../middlewares/auth.middleware';
 import validateRequest from '../../middlewares/validateRequest';
 import { analyticsController } from './analytics.controller';
 import { analyticsValidation } from './analytics.validation';
+import { verifyTenantAccess } from '../../middlewares/tenant.middleware';
+//TODO: Add tenant access verification to all relevent routes once implemented
 
 const router = express.Router();
 

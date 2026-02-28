@@ -287,7 +287,11 @@ const updateMyProfile = async (userId: string, payload: IUpdateUser) => {
 
 // ─── Delete (role-scoped) ─────────────────────────────────────────────────────
 
-const deleteUser = async (requester: JwtPayload, targetUserId: string) => {
+const deleteUser = async (
+    requester: JwtPayload,
+    targetUserId: string,
+    tenantId: string,
+) => {
     const targetUser = await prisma.user.findUnique({
         where: { id: targetUserId },
     });
@@ -321,28 +325,48 @@ const deleteUser = async (requester: JwtPayload, targetUserId: string) => {
         );
     }
 
-    // Ensure the requester shares at least one restaurant with the target user
-    const requesterRestaurantIds = await getRestaurantIds(requester.id);
-    const targetRestaurantIds = await getRestaurantIds(targetUserId);
-    const hasSharedRestaurant = requesterRestaurantIds.some(id =>
-        targetRestaurantIds.includes(id),
-    );
+    await prisma.$transaction(async tx => {
+        // Remove the role-specific record for the target user, then delete the user
+        await Promise.all([
+            tx.chef.updateMany({
+                where: {
+                    AND: [{ userId: targetUserId }, { tenantId: tenantId }],
+                },
+                data: {
+                    isDeleted: true,
+                    deletedBy: requester.id,
+                },
+            }),
 
-    if (!hasSharedRestaurant) {
-        throw new ApiError(
-            httpstatus.FORBIDDEN,
-            'You can only manage users within your own restaurant',
-        );
-    }
+            tx.waiter.updateMany({
+                where: {
+                    AND: [{ userId: targetUserId }, { tenantId: tenantId }],
+                },
+                data: {
+                    isDeleted: true,
+                    deletedBy: requester.id,
+                },
+            }),
 
-    // Remove the role-specific record for the target user, then delete the user
-    await Promise.all([
-        prisma.chef.deleteMany({ where: { userId: targetUserId } }),
-        prisma.waiter.deleteMany({ where: { userId: targetUserId } }),
-        prisma.manager.deleteMany({ where: { userId: targetUserId } }),
-    ]);
+            tx.manager.updateMany({
+                where: {
+                    AND: [{ userId: targetUserId }, { tenantId: tenantId }],
+                },
+                data: {
+                    isDeleted: true,
+                    deletedBy: requester.id,
+                },
+            }),
+        ]);
 
-    await prisma.user.delete({ where: { id: targetUserId } });
+        await tx.user.update({
+            where: { id: targetUserId },
+            data: {
+                isDeleted: true,
+                deletedBy: requester.id,
+            },
+        });
+    });
 
     return { message: 'User deleted successfully' };
 };
@@ -369,6 +393,7 @@ const getRestaurantStaff = async (
     const whereConditions = {
         restaurantId: restaurantId,
         tenantId: tenantId,
+        isDeleted: false,
     };
 
     const [chefs, waiters, managers] = await Promise.all([

@@ -73,6 +73,7 @@ router.post(
 router.delete(
     '/:userId',
     verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
     userController.deleteUser,
 );
 

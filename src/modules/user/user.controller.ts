@@ -96,7 +96,11 @@ const deleteUser = catchAsync(async (req: any, res) => {
         throw new ApiError(httpstatus.BAD_REQUEST, 'User ID is required');
     }
 
-    const result = await userService.deleteUser(requester, userId);
+    const result = await userService.deleteUser(
+        requester,
+        userId,
+        req.tenantId,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.OK,

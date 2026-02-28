@@ -5,7 +5,6 @@ import validateRequest from '../../middlewares/validateRequest';
 import { analyticsController } from './analytics.controller';
 import { analyticsValidation } from './analytics.validation';
 import { verifyTenantAccess } from '../../middlewares/tenant.middleware';
-//TODO: Add tenant access verification to all relevent routes once implemented
 
 const router = express.Router();
 
@@ -17,6 +16,7 @@ const ownerOnly = [UserRole.OWNER];
 router.get(
     '/',
     verifyJwt(...managerAndAbove),
+    verifyTenantAccess,
     validateRequest(analyticsValidation.summarySchema),
     analyticsController.getSummary,
 );
@@ -25,6 +25,7 @@ router.get(
 router.get(
     '/dashboard/:restaurantId',
     verifyJwt(...managerAndAbove),
+    verifyTenantAccess,
     validateRequest(analyticsValidation.dashboardSchema),
     analyticsController.getDashboard,
 );
@@ -33,6 +34,7 @@ router.get(
 router.get(
     '/orders/:restaurantId',
     verifyJwt(...managerAndAbove),
+    verifyTenantAccess,
     validateRequest(analyticsValidation.ordersSchema),
     analyticsController.getOrders,
 );
@@ -41,6 +43,7 @@ router.get(
 router.get(
     '/menu/:restaurantId',
     verifyJwt(...managerAndAbove),
+    verifyTenantAccess,
     validateRequest(analyticsValidation.menuSchema),
     analyticsController.getMenu,
 );
@@ -49,6 +52,7 @@ router.get(
 router.get(
     '/inventory/:restaurantId',
     verifyJwt(...managerAndAbove),
+    verifyTenantAccess,
     validateRequest(analyticsValidation.inventorySchema),
     analyticsController.getInventory,
 );
@@ -58,6 +62,7 @@ router.get(
 router.get(
     '/restaurants',
     verifyJwt(...ownerOnly),
+    verifyTenantAccess,
     validateRequest(analyticsValidation.restaurantsSchema),
     analyticsController.getRestaurants,
 );

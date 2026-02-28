@@ -80,8 +80,9 @@ model Tenant {
     subscriptionStatus String  @default("active")
     isActive           Boolean @default(true)
 
-    owner               Owner?
-    restaurants         Restaurant[]
+    ownerId             String
+    owner               Owner                 @relation(fields: [ownerId], references: [userId])
+    restaurant          Restaurant?
     chefs               Chef[]
     waiters             Waiter[]
     managers            Manager[]
@@ -90,13 +91,13 @@ model Tenant {
     tables              Table[]
     orders              Order[]
     reservations        Reservation[]
+    coupons             Coupon[]
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
     lastUpdatedBy String?
     isDeleted     Boolean  @default(false)
     deletedBy     String?
-    coupons       Coupon[]
 }
 
 // User model
@@ -130,8 +131,7 @@ model Owner {
     userId String @unique
     user   User   @relation(fields: [userId], references: [id])
 
-    tenantId String @unique
-    tenant   Tenant @relation(fields: [tenantId], references: [id])
+    tenants Tenant[]
 
     restaurants Restaurant[]
 
@@ -142,7 +142,6 @@ model Owner {
     deletedBy     String?
 
     @@index([userId])
-    @@index([tenantId])
 }
 
 model Customer {
@@ -244,7 +243,7 @@ model Restaurant {
     contactInfo String?
     bannerImage String?
 
-    tenantId String
+    tenantId String @unique
     tenant   Tenant @relation(fields: [tenantId], references: [id])
 
     ownerId             String

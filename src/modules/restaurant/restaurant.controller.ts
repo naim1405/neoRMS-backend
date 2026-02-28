@@ -55,7 +55,7 @@ const getAllRestaurants = catchAsync(async (req, res) => {
 
 const getRestaurantsByUserId = catchAsync(async (req, res) => {
     const result = await restaurantService.getRestaurantsByUserId(
-        req.user as jwtPayload,
+        req.user as JwtPayload,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,

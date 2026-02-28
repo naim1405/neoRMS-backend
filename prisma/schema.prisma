@@ -82,7 +82,6 @@ model Tenant {
 
     owner               Owner?
     restaurants         Restaurant[]
-    customers           Customer[]
     chefs               Chef[]
     waiters             Waiter[]
     managers            Manager[]
@@ -151,9 +150,6 @@ model Customer {
     userId String @unique
     user   User   @relation(fields: [userId], references: [id])
 
-    tenantId String
-    tenant   Tenant @relation(fields: [tenantId], references: [id])
-
     restaurants String[]
     reviews     Review[]
     orders      Order[]
@@ -168,7 +164,6 @@ model Customer {
     couponUsages CouponUsage[]
 
     @@index([userId])
-    @@index([tenantId])
 }
 
 model Chef {

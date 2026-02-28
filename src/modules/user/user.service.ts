@@ -99,6 +99,7 @@ const createStaffUser = async (
     requesterId: string,
     targetRole: UserRole,
     payload: ICreateStaffUser,
+    tenantId: string,
 ) => {
     // Verify the restaurant exists
     const restaurant = await prisma.restaurant.findUnique({
@@ -106,15 +107,6 @@ const createStaffUser = async (
     });
     if (!restaurant) {
         throw new ApiError(httpstatus.NOT_FOUND, 'Restaurant not found');
-    }
-
-    // Verify requester is associated with that restaurant
-    const requesterRestaurantIds = await getRestaurantIds(requesterId);
-    if (!requesterRestaurantIds.includes(payload.restaurantId)) {
-        throw new ApiError(
-            httpstatus.FORBIDDEN,
-            'You are not associated with this restaurant',
-        );
     }
 
     await assertEmailNotTaken(payload.email);
@@ -129,6 +121,7 @@ const createStaffUser = async (
             avatar: payload.avatar,
             role: targetRole,
             isVerified: true,
+            lastUpdatedBy: requesterId,
         },
         select: {
             id: true,
@@ -141,13 +134,13 @@ const createStaffUser = async (
     });
 
     // Associate the new user with the restaurant via their role-specific model
-    const tenantId = restaurant.tenantId;
     if (targetRole === UserRole.CHEF) {
         await prisma.chef.create({
             data: {
                 userId: newUser.id,
                 restaurantId: payload.restaurantId,
                 tenantId,
+                lastUpdatedBy: requesterId,
             },
         });
     } else if (targetRole === UserRole.WAITER) {
@@ -156,6 +149,7 @@ const createStaffUser = async (
                 userId: newUser.id,
                 restaurantId: payload.restaurantId,
                 tenantId,
+                lastUpdatedBy: requesterId,
             },
         });
     } else if (targetRole === UserRole.MANAGER) {
@@ -164,6 +158,7 @@ const createStaffUser = async (
                 userId: newUser.id,
                 restaurantId: payload.restaurantId,
                 tenantId,
+                lastUpdatedBy: requesterId,
             },
         });
     }
@@ -175,18 +170,27 @@ const createStaffUser = async (
 const createManager = async (
     requesterId: string,
     payload: ICreateStaffUser,
+    tenantId: string,
 ) => {
-    return createStaffUser(requesterId, UserRole.MANAGER, payload);
+    return createStaffUser(requesterId, UserRole.MANAGER, payload, tenantId);
 };
 
 // OWNER or MANAGER creates CHEF
-const createChef = async (requesterId: string, payload: ICreateStaffUser) => {
-    return createStaffUser(requesterId, UserRole.CHEF, payload);
+const createChef = async (
+    requesterId: string,
+    payload: ICreateStaffUser,
+    tenantId: string,
+) => {
+    return createStaffUser(requesterId, UserRole.CHEF, payload, tenantId);
 };
 
 // OWNER or MANAGER creates WAITER
-const createWaiter = async (requesterId: string, payload: ICreateStaffUser) => {
-    return createStaffUser(requesterId, UserRole.WAITER, payload);
+const createWaiter = async (
+    requesterId: string,
+    payload: ICreateStaffUser,
+    tenantId: string,
+) => {
+    return createStaffUser(requesterId, UserRole.WAITER, payload, tenantId);
 };
 
 // ─── Profile ──────────────────────────────────────────────────────────────────

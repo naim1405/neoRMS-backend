@@ -18,7 +18,11 @@ const signup = catchAsync(async (req, res) => {
 
 const createManager = catchAsync(async (req: any, res) => {
     const requester = req.user as JwtPayload;
-    const result = await userService.createManager(requester.id, req.body);
+    const result = await userService.createManager(
+        requester.id,
+        req.body,
+        req.tenantId,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.CREATED,
@@ -30,7 +34,11 @@ const createManager = catchAsync(async (req: any, res) => {
 
 const createChef = catchAsync(async (req: any, res) => {
     const requester = req.user as JwtPayload;
-    const result = await userService.createChef(requester.id, req.body);
+    const result = await userService.createChef(
+        requester.id,
+        req.body,
+        req.tenantId,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.CREATED,
@@ -42,7 +50,11 @@ const createChef = catchAsync(async (req: any, res) => {
 
 const createWaiter = catchAsync(async (req: any, res) => {
     const requester = req.user as JwtPayload;
-    const result = await userService.createWaiter(requester.id, req.body);
+    const result = await userService.createWaiter(
+        requester.id,
+        req.body,
+        req.tenantId,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.CREATED,

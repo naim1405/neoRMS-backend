@@ -44,6 +44,7 @@ router.get(
 router.post(
     '/staff/manager',
     verifyJwt(UserRole.OWNER),
+    verifyTenantAccess,
     validateRequest(userValidation.createStaffSchema),
     userController.createManager,
 );
@@ -52,6 +53,7 @@ router.post(
 router.post(
     '/staff/chef',
     verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
     validateRequest(userValidation.createStaffSchema),
     userController.createChef,
 );
@@ -60,6 +62,7 @@ router.post(
 router.post(
     '/staff/waiter',
     verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
     validateRequest(userValidation.createStaffSchema),
     userController.createWaiter,
 );

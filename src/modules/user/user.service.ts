@@ -53,25 +53,41 @@ const signup = async (payload: ISignupUser) => {
     await assertEmailNotTaken(payload.email);
 
     const hashedPassword = await AuthUtils.hashPassword(payload.password);
+    const user = await prisma.$transaction(async tx => {
+        const user = await tx.user.create({
+            data: {
+                email: payload.email,
+                fullName: payload.fullName,
+                password: hashedPassword,
+                avatar: payload.avatar,
+                role: payload.role as UserRole,
+                isVerified: true, // TODO: set to false and send OTP in production
+            },
+            select: {
+                id: true,
+                email: true,
+                fullName: true,
+                role: true,
+                avatar: true,
+                isVerified: true,
+                createdAt: true,
+            },
+        });
+        if (payload.role === UserRole.OWNER) {
+            await tx.owner.create({
+                data: {
+                    userId: user.id,
+                },
+            });
+        } else if (payload.role === UserRole.CUSTOMER) {
+            await tx.customer.create({
+                data: {
+                    userId: user.id,
+                },
+            });
+        }
 
-    const user = await prisma.user.create({
-        data: {
-            email: payload.email,
-            fullName: payload.fullName,
-            password: hashedPassword,
-            avatar: payload.avatar,
-            role: payload.role as UserRole,
-            isVerified: true, // TODO: set to false and send OTP in production
-        },
-        select: {
-            id: true,
-            email: true,
-            fullName: true,
-            role: true,
-            avatar: true,
-            isVerified: true,
-            createdAt: true,
-        },
+        return user;
     });
 
     return user;

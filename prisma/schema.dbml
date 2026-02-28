@@ -170,7 +170,6 @@ Table Owner {
 Table Customer {
   id            varchar [pk]
   userId        varchar [not null, unique, ref: - User.id]
-  tenantId      varchar [not null, ref: > Tenant.id]
   createdAt     timestamp [not null, default: `now()`]
   updatedAt     timestamp [not null]
   lastUpdatedBy varchar

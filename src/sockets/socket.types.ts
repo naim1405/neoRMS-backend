@@ -14,7 +14,7 @@ declare module 'socket.io' {
     }
 
     interface SocketData {
-        restaurantId?: string;
+        tenantId?: string;
     }
 }
 

@@ -80,9 +80,9 @@ model Tenant {
     subscriptionStatus String  @default("active")
     isActive           Boolean @default(true)
 
-    owner               Owner?
-    restaurants         Restaurant[]
-    customers           Customer[]
+    ownerId             String
+    owner               Owner                 @relation(fields: [ownerId], references: [userId])
+    restaurant          Restaurant?
     chefs               Chef[]
     waiters             Waiter[]
     managers            Manager[]
@@ -90,6 +90,8 @@ model Tenant {
     restaurantInventory RestaurantInventory[]
     tables              Table[]
     orders              Order[]
+    reservations        Reservation[]
+    coupons             Coupon[]
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
@@ -129,8 +131,7 @@ model Owner {
     userId String @unique
     user   User   @relation(fields: [userId], references: [id])
 
-    tenantId String @unique
-    tenant   Tenant @relation(fields: [tenantId], references: [id])
+    tenants Tenant[]
 
     restaurants Restaurant[]
 
@@ -141,16 +142,12 @@ model Owner {
     deletedBy     String?
 
     @@index([userId])
-    @@index([tenantId])
 }
 
 model Customer {
     id     String @id @default(uuid())
     userId String @unique
     user   User   @relation(fields: [userId], references: [id])
-
-    tenantId String
-    tenant   Tenant @relation(fields: [tenantId], references: [id])
 
     restaurants String[]
     reviews     Review[]
@@ -162,8 +159,10 @@ model Customer {
     isDeleted     Boolean  @default(false)
     deletedBy     String?
 
+    reservations Reservation[]
+    couponUsages CouponUsage[]
+
     @@index([userId])
-    @@index([tenantId])
 }
 
 model Chef {
@@ -244,7 +243,7 @@ model Restaurant {
     contactInfo String?
     bannerImage String?
 
-    tenantId String
+    tenantId String @unique
     tenant   Tenant @relation(fields: [tenantId], references: [id])
 
     ownerId             String
@@ -256,12 +255,14 @@ model Restaurant {
     managers            Manager[]
     tables              Table[]
 
-    createdAt     DateTime @default(now())
-    updatedAt     DateTime @updatedAt
+    createdAt     DateTime      @default(now())
+    updatedAt     DateTime      @updatedAt
     lastUpdatedBy String?
-    isDeleted     Boolean  @default(false)
+    isDeleted     Boolean       @default(false)
     deletedBy     String?
     orders        Order[]
+    coupons       Coupon[]
+    reservations  Reservation[]
 
     @@index([tenantId])
     @@index([ownerId])
@@ -464,6 +465,15 @@ enum PaymentStatus {
     REFUNDED
 }
 
+enum ReservationStatus {
+    PENDING
+    CONFIRMED
+    SEATED
+    COMPLETED
+    CANCELLED
+    NO_SHOW
+}
+
 model Table {
     id          String @id @default(uuid())
     tableNumber Int
@@ -475,7 +485,8 @@ model Table {
     tenantId String
     tenant   Tenant @relation(fields: [tenantId], references: [id])
 
-    orders Order[]
+    orders       Order[]
+    reservations Reservation[]
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
@@ -486,6 +497,38 @@ model Table {
     @@unique([restaurantId, tableNumber])
     @@index([restaurantId])
     @@index([tenantId])
+}
+
+// Reservation model
+model Reservation {
+    id           String            @id @default(uuid())
+    scheduledFor DateTime // the actual slot start
+    duration     Int               @default(60) // in minutes
+    partySize    Int
+    status       ReservationStatus @default(PENDING)
+    notes        String?
+    contactPhone String?
+
+    customerId   String
+    customer     Customer   @relation(fields: [customerId], references: [userId])
+    tableId      String
+    table        Table      @relation(fields: [tableId], references: [id])
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+    tenantId     String
+    tenant       Tenant     @relation(fields: [tenantId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@index([tableId])
+    @@index([customerId])
+    @@index([restaurantId])
+    @@index([tenantId])
+    @@index([scheduledFor])
 }
 
 // Order model
@@ -510,6 +553,10 @@ model Order {
     tableId   String?
     table     Table?    @relation(fields: [tableId], references: [id])
     orderType OrderType
+
+    coupon      Coupon?      @relation(fields: [couponId], references: [id])
+    couponId    String?
+    couponUsage CouponUsage?
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
@@ -567,4 +614,63 @@ model OrderItemAddon {
     deletedBy     String?
 
     @@index([orderItemId])
+}
+
+enum DiscountType {
+    PERCENTAGE
+    AMOUNT
+}
+
+enum CouponStatus {
+    ACTIVE
+    EXPIRED
+    REDEEMED
+    INACTIVE
+}
+
+model Coupon {
+    id             String       @id @default(uuid())
+    code           String       @unique
+    description    String?
+    discount       Float
+    discountType   DiscountType @default(PERCENTAGE)
+    validFrom      DateTime
+    validUntil     DateTime
+    usageLimit     Int? // Total number of times the coupon can be used
+    usedCount      Int          @default(0) // Number of times the coupon has been used
+    minOrderAmount Float? // Minimum order total required to apply coupon
+    maxDiscount    Float? // Cap on discount amount (for PERCENTAGE type)
+    perUserLimit   Int? // Max times a single customer can use this coupon
+    status         CouponStatus @default(ACTIVE)
+
+    tenantId       String
+    tenant         Tenant        @relation(fields: [tenantId], references: [id])
+    restaurant     Restaurant?   @relation(fields: [restaurantId], references: [id])
+    restaurantId   String?
+    redeemedOrders Order[]
+    customerUsages CouponUsage[]
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+    lastUpdatedBy String?
+
+    @@map("coupons")
+}
+
+model CouponUsage {
+    id     String   @id @default(uuid())
+    usedAt DateTime @default(now())
+
+    couponId   String
+    coupon     Coupon   @relation(fields: [couponId], references: [id])
+    customerId String
+    customer   Customer @relation(fields: [customerId], references: [userId])
+    orderId    String   @unique
+    order      Order    @relation(fields: [orderId], references: [id])
+
+    @@unique([couponId, customerId, orderId])
+    @@index([couponId])
+    @@index([customerId])
 }

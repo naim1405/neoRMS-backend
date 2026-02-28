@@ -206,28 +206,48 @@ const getMyProfile = async (userId: string) => {
             Owner: {
                 select: {
                     restaurants: {
-                        select: { id: true, name: true, location: true },
+                        select: {
+                            id: true,
+                            tenantId: true,
+                            name: true,
+                            location: true,
+                        },
                     },
                 },
             },
             Chef: {
                 select: {
                     restaurant: {
-                        select: { id: true, name: true, location: true },
+                        select: {
+                            id: true,
+                            tenantId: true,
+                            name: true,
+                            location: true,
+                        },
                     },
                 },
             },
             Waiter: {
                 select: {
                     restaurant: {
-                        select: { id: true, name: true, location: true },
+                        select: {
+                            id: true,
+                            tenantId: true,
+                            name: true,
+                            location: true,
+                        },
                     },
                 },
             },
             Manager: {
                 select: {
                     restaurant: {
-                        select: { id: true, name: true, location: true },
+                        select: {
+                            id: true,
+                            tenantId: true,
+                            name: true,
+                            location: true,
+                        },
                     },
                 },
             },

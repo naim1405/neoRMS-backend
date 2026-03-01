@@ -1,4 +1,4 @@
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, OrderType } from '@prisma/client';
 
 // OrderItem Interface
 export interface IOrderItem {
@@ -16,8 +16,11 @@ export interface IOrderItem {
 // Full Order Interface
 export interface IOrder {
     id: string;
-    userId: string;
+    customerId: string;
+    restaurantId: string;
+    tenantId: string;
     status: OrderStatus;
+    orderType: OrderType;
     items: IOrderItem[];
     totalPrice: number;
     paymentMethod?: string | null;
@@ -30,6 +33,8 @@ export interface IOrder {
 
 // Create Order Request Body
 export interface ICreateOrderRequest {
+    restaurantId: string;
+    tenantId: string;
     items: Array<{
         menuItemId: string;
         name: string;
@@ -38,19 +43,25 @@ export interface ICreateOrderRequest {
         notes?: string;
     }>;
     totalPrice: number;
-    paymentMethod?: string;
+    paymentMethod: 'CASH' | 'CARD' | 'MOBILE_PAYMENT' | 'ONLINE_PAYMENT';
     notes?: string;
     estimatedDeliveryTimeInMinutes?: number;
-
+    tableId?: string; // optional, for DINE_IN
 }
 
 // Update Order Request Body
 export interface IUpdateOrderRequest {
-    status?: OrderStatus;
+    orderType?: OrderType;
     paymentMethod?: string;
-    paymentStatus?: string;
     notes?: string;
     estimatedDeliveryTimeInMinutes?: number;
+    items?: {
+        menuItemId: string;
+        name: string;
+        quantity: number;
+        price: number;
+        notes?: string;
+    }[];
 }
 
 // Get Order By ID Params

@@ -13,7 +13,12 @@ const router = express.Router();
 // POST /orders
 router.post(
     '/',
-    verifyJwt(UserRole.CUSTOMER, UserRole.WAITER),
+    verifyJwt(
+        UserRole.CUSTOMER,
+        UserRole.WAITER,
+        UserRole.MANAGER,
+        UserRole.OWNER,
+    ),
     validateRequest(orderStatusValidation.createOrderSchema),
     orderStatusController.createOrder,
 );
@@ -22,19 +27,14 @@ router.post(
 // GET /orders/stats/:userId
 router.get(
     '/stats/:userId',
-    verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER),
+    verifyJwt(
+        UserRole.CUSTOMER,
+        UserRole.WAITER,
+        UserRole.MANAGER,
+        UserRole.OWNER,
+    ),
     orderStatusController.getOrderStatsByUserID,
 );
-
-// Get orders by status and order type
-// GET /orders/status/:status?limit=10&page=1&orderType=DINE_IN
-router.get(
-    '/status/:status',
-    verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER, UserRole.CHEF),
-    validateRequest(orderStatusValidation.getOrderByStatusAndOrderTypeSchema),
-    orderStatusController.getOrderByStatusAndOrderType,
-);
-
 
 // Track order status in real-time
 // GET /orders/track/:orderId
@@ -45,23 +45,44 @@ router.get(
     orderStatusController.trackOrder,
 );
 
-// DYNAMIC ROUTES
-
-
 // Get single order by ID
 // GET /orders/:orderId
 router.get(
     '/:orderId',
-    verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER, UserRole.CHEF),
+    verifyJwt(
+        UserRole.CUSTOMER,
+        UserRole.WAITER,
+        UserRole.MANAGER,
+        UserRole.CHEF,
+    ),
     validateRequest(orderStatusValidation.getOrderByIdSchema),
     orderStatusController.getOrderById,
 );
 
+// Get orders by status and order type
+// GET /orders/status/:status?limit=10&page=1&orderType=DINE_IN
+router.get(
+    '/status/:status',
+    verifyJwt(
+        UserRole.CUSTOMER,
+        UserRole.WAITER,
+        UserRole.MANAGER,
+        UserRole.CHEF,
+    ),
+    validateRequest(orderStatusValidation.getOrderByStatusAndOrderTypeSchema),
+    orderStatusController.getOrderByStatusAndOrderType,
+);
+
 // Update order status
-// PUT /orders/:orderId
+// PUT /orders/:orderId/status
 router.put(
     '/:orderId/status',
-    verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER, UserRole.CHEF),
+    verifyJwt(
+        UserRole.CUSTOMER,
+        UserRole.WAITER,
+        UserRole.MANAGER,
+        UserRole.CHEF,
+    ),
     validateRequest(orderStatusValidation.updateOrderStatusSchema),
     orderStatusController.updateOrderStatus,
 );
@@ -74,14 +95,27 @@ router.put(
     orderStatusController.updateOrder,
 );
 
-
-// Delete order
+// Delete order (soft delete - update is deleted flag)
 // DELETE /orders/:orderId
-router.delete(
-    '/:orderId',
-    verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER),
+router.patch(
+    '/:orderId/delete/soft',
+    verifyJwt(
+        UserRole.CUSTOMER,
+        UserRole.WAITER,
+        UserRole.MANAGER,
+        UserRole.OWNER,
+    ),
     validateRequest(orderStatusValidation.deleteOrderSchema),
     orderStatusController.deleteOrder,
+);
+
+// Hard delete order (admin/owner only)
+// DELETE /orders/:orderId/hard
+router.delete(
+    '/:orderId/hard',
+    verifyJwt(UserRole.MANAGER, UserRole.OWNER),
+    validateRequest(orderStatusValidation.deleteOrderSchema), // reuse existing — just needs orderId param
+    orderStatusController.hardDeleteOrder,
 );
 
 export const orderRoutes = router;

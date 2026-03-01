@@ -2,8 +2,9 @@ import httpstatus from 'http-status';
 import sendResponse from '../../utils/ApiResponse';
 import catchAsync from '../../utils/catchAsync';
 import { inventoryService } from './inventory.service';
+// req.user and req.tenantId are guaranteed by verifyJwt + verifyTenantAccess middlewares
 
-const getAllInventoryIngredients = catchAsync(async (req, res) => {
+const getAllInventoryIngredients = catchAsync(async (req: any, res) => {
     const result = await inventoryService.getAllInventoryIngredients();
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -13,9 +14,10 @@ const getAllInventoryIngredients = catchAsync(async (req, res) => {
     });
 });
 
-const getRestaurantInventory = catchAsync(async (req, res) => {
+const getRestaurantInventory = catchAsync(async (req: any, res) => {
     const result = await inventoryService.getRestaurantInventory(
-        req.params.restaurantId as string,
+        req.params.restaurantId,
+        req.tenantId,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -25,10 +27,12 @@ const getRestaurantInventory = catchAsync(async (req, res) => {
     });
 });
 
-const createRestaurantInventory = catchAsync(async (req, res) => {
+const createRestaurantInventory = catchAsync(async (req: any, res) => {
     const result = await inventoryService.createRestaurantInventory(
-        req.params.restaurantId as string,
+        req.params.restaurantId,
+        req.tenantId,
         req.body,
+        req.user.id,
     );
     sendResponse(res, {
         statusCode: httpstatus.CREATED,
@@ -38,11 +42,13 @@ const createRestaurantInventory = catchAsync(async (req, res) => {
     });
 });
 
-const updateRestaurantInventory = catchAsync(async (req, res) => {
+const updateRestaurantInventory = catchAsync(async (req: any, res) => {
     const result = await inventoryService.updateRestaurantInventory(
-        req.params.restaurantInventoryId as string,
-        req.params.restaurantId as string,
+        req.params.restaurantInventoryId,
+        req.params.restaurantId,
+        req.tenantId,
         req.body,
+        req.user.id,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -52,10 +58,12 @@ const updateRestaurantInventory = catchAsync(async (req, res) => {
     });
 });
 
-const deleteRestaurantInventory = catchAsync(async (req, res) => {
+const deleteRestaurantInventory = catchAsync(async (req: any, res) => {
     await inventoryService.deleteRestaurantInventory(
-        req.params.restaurantInventoryId as string,
-        req.params.restaurantId as string,
+        req.params.restaurantInventoryId,
+        req.params.restaurantId,
+        req.tenantId,
+        req.user.id,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -65,11 +73,13 @@ const deleteRestaurantInventory = catchAsync(async (req, res) => {
     });
 });
 
-const addQuantity = catchAsync(async (req, res) => {
+const addQuantity = catchAsync(async (req: any, res) => {
     const result = await inventoryService.addQuantity(
-        req.params.restaurantInventoryId as string,
-        req.params.restaurantId as string,
+        req.params.restaurantInventoryId,
+        req.params.restaurantId,
+        req.tenantId,
         req.body,
+        req.user.id,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -79,11 +89,13 @@ const addQuantity = catchAsync(async (req, res) => {
     });
 });
 
-const subtractQuantity = catchAsync(async (req, res) => {
+const subtractQuantity = catchAsync(async (req: any, res) => {
     const result = await inventoryService.subtractQuantity(
-        req.params.restaurantInventoryId as string,
-        req.params.restaurantId as string,
+        req.params.restaurantInventoryId,
+        req.params.restaurantId,
+        req.tenantId,
         req.body,
+        req.user.id,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,

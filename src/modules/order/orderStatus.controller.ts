@@ -7,19 +7,19 @@ import { JwtPayload } from '../../types/jwt.types';
 const createOrder = catchAsync(async (req: any, res) => {
     const creator = req.user as JwtPayload;
     const orderData = req.body; // order data has customerID along with others
+    const tenantId = req.tenantId as string;
 
     // TODO:
-    // [] Order data validator
-    // [] remove tenentID check
-    // [] pass full creator
+    // [x] Order data validator
+    // [x] remove tenentID check
+    // [x] pass full creator
     // [] restaurent ID ()
     // [] get tenant Id of restaurant and send as the tenant id of the order
 
     const result = await orderStatusService.createOrder(
-        creator.id,
-        creator.tenantId,
-        creator.role,
+        creator,
         orderData,
+        tenantId,
     );
 
     sendResponse(res, {
@@ -34,10 +34,12 @@ const createOrder = catchAsync(async (req: any, res) => {
 const getOrderStatsByUserID = catchAsync(async (req: any, res) => {
     const requestingUser = req.user as JwtPayload;
     const targetUserID = req.params.userId;
+    const tenantId = req.tenantId as string;
 
     const result = await orderStatusService.getOrderStatsByUserID(
         targetUserID,
         requestingUser,
+        tenantId,
     );
 
     sendResponse(res, {
@@ -52,8 +54,9 @@ const getOrderStatsByUserID = catchAsync(async (req: any, res) => {
 const trackOrder = catchAsync(async (req: any, res) => {
     const { orderId } = req.params;
     const user = req.user as JwtPayload;
+    const tenantId = req.tenantId as string;
 
-    const result = await orderStatusService.trackOrder(orderId, user);
+    const result = await orderStatusService.trackOrder(orderId, user, tenantId);
 
     sendResponse(res, {
         statusCode: 200,
@@ -67,8 +70,13 @@ const trackOrder = catchAsync(async (req: any, res) => {
 const getOrderById = catchAsync(async (req: any, res) => {
     const { orderId } = req.params;
     const user = req.user as JwtPayload;
+    const tenantId = req.tenantId as string;
 
-    const result = await orderStatusService.getOrderById(orderId, user);
+    const result = await orderStatusService.getOrderById(
+        orderId,
+        user,
+        tenantId,
+    );
 
     sendResponse(res, {
         statusCode: 200,
@@ -82,6 +90,7 @@ const getOrderById = catchAsync(async (req: any, res) => {
 // GET /orders/status/:status?limit=10&page=1&orderType=DINE_IN
 const getOrderByStatusAndOrderType = catchAsync(async (req: any, res) => {
     const user = req.user as JwtPayload;
+    const tenantId = req.tenantId as string;
 
     const { status } = req.params;
 
@@ -90,9 +99,8 @@ const getOrderByStatusAndOrderType = catchAsync(async (req: any, res) => {
     const orderType = req.query.orderType as any;
 
     const result = await orderStatusService.getOrderByStatusAndOrderType(
-        user.id,
-        user.role,
-        user.tenantId,
+        user,
+        tenantId,
         status as any,
         limit,
         page,
@@ -113,11 +121,13 @@ const updateOrderStatus = catchAsync(async (req: any, res) => {
     const { orderId } = req.params;
     const user = req.user as JwtPayload;
     const { status } = req.body;
+    const tenantId = req.tenantId as string;
 
     const result = await orderStatusService.updateOrderStatus(
         orderId,
         user,
         status,
+        tenantId,
     );
 
     sendResponse(res, {
@@ -129,15 +139,18 @@ const updateOrderStatus = catchAsync(async (req: any, res) => {
 });
 
 // update order details (items, total price, payment method, notes, etc.)
+
 const updateOrder = catchAsync(async (req: any, res) => {
     const { orderId } = req.params;
     const requestingUser = req.user as JwtPayload;
     const updateData = req.body;
+    const tenantId = req.tenantId as string;
 
     const result = await orderStatusService.updateOrder(
         orderId,
         requestingUser,
         updateData,
+        tenantId,
     );
 
     sendResponse(res, {
@@ -152,8 +165,9 @@ const updateOrder = catchAsync(async (req: any, res) => {
 const deleteOrder = catchAsync(async (req: any, res) => {
     const { orderId } = req.params;
     const requestingUser = req.user as JwtPayload;
+    const tenantId = req.tenantId as string;
 
-    await orderStatusService.deleteOrder(orderId, requestingUser);
+    await orderStatusService.deleteOrder(orderId, requestingUser, tenantId);
 
     sendResponse(res, {
         statusCode: 200,
@@ -166,8 +180,9 @@ const deleteOrder = catchAsync(async (req: any, res) => {
 const hardDeleteOrder = catchAsync(async (req: any, res) => {
     const { orderId } = req.params;
     const requestingUser = req.user as JwtPayload;
+    const tenantId = req.tenantId as string;
 
-    await orderStatusService.hardDeleteOrder(orderId, requestingUser);
+    await orderStatusService.hardDeleteOrder(orderId, requestingUser, tenantId);
 
     sendResponse(res, {
         statusCode: 200,

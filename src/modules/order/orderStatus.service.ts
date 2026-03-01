@@ -10,14 +10,13 @@ import { is } from 'zod/v4/locales';
  * Create a new order
  */
 const createOrder = async (
-    creatorId: string,
-    CreatorTenantId: string,
-    creatorRole: string,
+    requestingUser: JwtPayload,
     orderData: any,
+    tenantId: string,
 ): Promise<IOrder> => {
     try {
         // check Tenant match
-        if (orderData.tenantId !== CreatorTenantId) {
+        if (orderData.tenantId !== tenantId) {
             throw new ApiError(
                 httpStatus.FORBIDDEN,
                 'You do not have permission to create an order (tenant mismatch)',
@@ -26,8 +25,8 @@ const createOrder = async (
 
         // customer can create only their orders
         if (
-            creatorRole === UserRole.CUSTOMER &&
-            orderData.customerId !== creatorId
+            requestingUser.role === UserRole.CUSTOMER &&
+            orderData.customerId !== requestingUser.id
         ) {
             throw new ApiError(
                 httpStatus.FORBIDDEN,
@@ -48,7 +47,7 @@ const createOrder = async (
                 notes: orderData.notes,
                 estimatedDeliveryTimeInMinutes:
                     orderData.estimatedDeliveryTimeInMinutes,
-                lastUpdatedBy: creatorId, // Track who created the order
+                lastUpdatedBy: requestingUser.id, // Track who created the order
                 items: {
                     create: orderData.items,
                 },
@@ -74,6 +73,7 @@ const createOrder = async (
 const getOrderStatsByUserID = async (
     targetUserID: string,
     requestingUser: JwtPayload,
+    tenentId: string,
 ): Promise<IOrderStats> => {
     try {
         // Saff or the user themselves can access the stats
@@ -91,7 +91,7 @@ const getOrderStatsByUserID = async (
         // base where clause
         const baseWhereClause = {
             customerId: targetUserID,
-            tenantId: requestingUser.tenantId, // tenant isolation
+            tenantId: tenentId, // tenant isolation
         };
 
         const [
@@ -161,12 +161,16 @@ const getOrderStatsByUserID = async (
 /**
  * Track order status in real-time with current progress step
  */
-const trackOrder = async (orderId: string, requestingUser: JwtPayload) => {
+const trackOrder = async (
+    orderId: string,
+    requestingUser: JwtPayload,
+    tenantId: string,
+) => {
     try {
         const order = await (prisma as any).order.findUnique({
             where: {
                 id: orderId,
-                tenantId: requestingUser.tenantId, // tenant isolation
+                tenantId: tenantId,
                 isDeleted: false,
             },
             include: { items: true },
@@ -185,7 +189,7 @@ const trackOrder = async (orderId: string, requestingUser: JwtPayload) => {
         ).includes(requestingUser.role);
 
         const isCustomerOwnerOfOrder = order.customerId === requestingUser.id;
-        const isTenantMatch = order.tenantId === requestingUser.tenantId;
+        const isTenantMatch = order.tenantId === tenantId;
 
         if (!isStaff && !isCustomerOwnerOfOrder) {
             throw new ApiError(
@@ -239,12 +243,13 @@ const getOrderStep = (status: OrderStatus): number => {
 const getOrderById = async (
     orderId: string,
     requestingUser: JwtPayload,
+    tenantId: string,
 ): Promise<IOrder> => {
     try {
         const order = await (prisma as any).order.findUnique({
             where: {
                 id: orderId,
-                tenantId: requestingUser.tenantId,
+                tenantId: tenantId,
                 isDeleted: false,
             },
             include: {
@@ -264,7 +269,7 @@ const getOrderById = async (
         const isCustomerOwnerOfOrder = order.customerId === requestingUser.id;
 
         // Tenant match
-        const isTenantMatch = order.tenantId === requestingUser.tenantId;
+        const isTenantMatch = order.tenantId === tenantId;
 
         if (!isStaff && !isCustomerOwnerOfOrder) {
             throw new ApiError(
@@ -294,9 +299,8 @@ const getOrderById = async (
  * Get all orders for a user by status and order Type with pagination
  */
 const getOrderByStatusAndOrderType = async (
-    requestingUserId: string,
-    requestingUserRole: string,
-    requestingTenantId: string,
+    requestingUser: JwtPayload,
+    TenantId: string,
     status?: OrderStatus,
     limit: number = 10,
     page: number = 1,
@@ -307,12 +311,12 @@ const getOrderByStatusAndOrderType = async (
 
         // Base where clause with tenant isolation
         const whereClause: any = {
-            tenantId: requestingTenantId,
+            tenantId: TenantId,
             isDeleted: false,
         };
 
-        if (requestingUserRole === UserRole.CUSTOMER) {
-            whereClause.customerId = requestingUserId;
+        if (requestingUser.role === UserRole.CUSTOMER) {
+            whereClause.customerId = requestingUser.id;
         }
 
         if (status) {
@@ -362,12 +366,13 @@ const updateOrderStatus = async (
     orderId: string,
     requestingUser: JwtPayload,
     status: OrderStatus,
+    tenantId: string,
 ): Promise<IOrder> => {
     try {
         const order = await (prisma as any).order.findUnique({
             where: {
                 id: orderId,
-                tenantId: requestingUser.tenantId,
+                tenantId: tenantId,
                 isDeleted: false,
             },
             include: {
@@ -405,7 +410,7 @@ const updateOrderStatus = async (
             }
         }
 
-        if (order.tenantId !== requestingUser.tenantId) {
+        if (order.tenantId !== tenantId) {
             throw new ApiError(
                 httpStatus.FORBIDDEN,
                 'You do not have permission to update this order (tenant mismatch)',
@@ -438,7 +443,7 @@ const updateOrderStatus = async (
         const updatedOrder = await (prisma as any).order.update({
             where: {
                 id: orderId,
-                tenantId: requestingUser.tenantId,
+                tenantId: tenantId,
             },
             data: { status },
             include: {
@@ -463,12 +468,13 @@ const updateOrder = async (
     orderId: string,
     requestingUser: JwtPayload,
     updateData: IUpdateOrderRequest,
+    tenantId: string,
 ): Promise<IOrder> => {
     try {
         const order = await (prisma as any).order.findUnique({
             where: {
                 id: orderId,
-                tenantId: requestingUser.tenantId, // tenant isolation at query level
+                tenantId: tenantId, // tenant isolation at query level
                 isDeleted: false,
             },
             include: { items: true },
@@ -524,7 +530,7 @@ const updateOrder = async (
         const updatedOrder = await (prisma as any).order.update({
             where: {
                 id: orderId,
-                tenantId: requestingUser.tenantId,
+                tenantId: tenantId,
             },
             data: {
                 ...scalarFields,
@@ -550,12 +556,16 @@ const updateOrder = async (
 /**
  * soft Delete order - update isDeleted flag to true
  */
-const deleteOrder = async (orderId: string, requestingUser: JwtPayload) => {
+const deleteOrder = async (
+    orderId: string,
+    requestingUser: JwtPayload,
+    tenantId: string,
+) => {
     try {
         const order = await (prisma as any).order.findUnique({
             where: {
                 id: orderId,
-                tenantId: requestingUser.tenantId, // tenant isolation
+                tenantId: tenantId, // tenant isolation
                 isDeleted: false,
             },
         });
@@ -606,7 +616,7 @@ const deleteOrder = async (orderId: string, requestingUser: JwtPayload) => {
         await (prisma as any).order.update({
             where: {
                 id: orderId,
-                tenantId: requestingUser.tenantId,
+                tenantId: tenantId,
             },
             data: {
                 isDeleted: true,
@@ -626,12 +636,16 @@ const deleteOrder = async (orderId: string, requestingUser: JwtPayload) => {
 
 /** * Hard delete order - permanently remove from database (admin/owner only) - ifnisDelete true
  */
-const hardDeleteOrder = async (orderId: string, requestingUser: JwtPayload) => {
+const hardDeleteOrder = async (
+    orderId: string,
+    requestingUser: JwtPayload,
+    tenantId: string,
+) => {
     try {
         const order = await (prisma as any).order.findUnique({
             where: {
                 id: orderId,
-                tenantId: requestingUser.tenantId,
+                tenantId: tenantId,
             },
         });
 
@@ -661,7 +675,7 @@ const hardDeleteOrder = async (orderId: string, requestingUser: JwtPayload) => {
         await (prisma as any).order.delete({
             where: {
                 id: orderId,
-                tenantId: requestingUser.tenantId,
+                tenantId: tenantId,
             },
         });
 

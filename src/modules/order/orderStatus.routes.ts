@@ -4,6 +4,7 @@ import { verifyJwt } from '../../middlewares/auth.middleware';
 import validateRequest from '../../middlewares/validateRequest';
 import { orderStatusValidation } from './orderStatus.validation';
 import { UserRole } from '@prisma/client';
+import { verifyTenantAccess } from '../../middlewares/tenant.middleware';
 
 const router = express.Router();
 
@@ -19,6 +20,7 @@ router.post(
         UserRole.MANAGER,
         UserRole.OWNER,
     ),
+    verifyTenantAccess,
     validateRequest(orderStatusValidation.createOrderSchema),
     orderStatusController.createOrder,
 );
@@ -33,6 +35,7 @@ router.get(
         UserRole.MANAGER,
         UserRole.OWNER,
     ),
+    verifyTenantAccess,
     orderStatusController.getOrderStatsByUserID,
 );
 
@@ -41,6 +44,7 @@ router.get(
 router.get(
     '/track/:orderId',
     verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER),
+    verifyTenantAccess,
     validateRequest(orderStatusValidation.trackOrderSchema),
     orderStatusController.trackOrder,
 );
@@ -56,6 +60,7 @@ router.get(
         UserRole.CHEF,
     ),
     validateRequest(orderStatusValidation.getOrderByIdSchema),
+    verifyTenantAccess,
     orderStatusController.getOrderById,
 );
 
@@ -70,6 +75,7 @@ router.get(
         UserRole.CHEF,
     ),
     validateRequest(orderStatusValidation.getOrderByStatusAndOrderTypeSchema),
+    verifyTenantAccess,
     orderStatusController.getOrderByStatusAndOrderType,
 );
 
@@ -84,6 +90,7 @@ router.put(
         UserRole.CHEF,
     ),
     validateRequest(orderStatusValidation.updateOrderStatusSchema),
+    verifyTenantAccess,
     orderStatusController.updateOrderStatus,
 );
 
@@ -92,6 +99,7 @@ router.put(
     '/:orderId',
     verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER),
     validateRequest(orderStatusValidation.updateOrderSchema),
+    verifyTenantAccess,
     orderStatusController.updateOrder,
 );
 
@@ -106,6 +114,7 @@ router.patch(
         UserRole.OWNER,
     ),
     validateRequest(orderStatusValidation.deleteOrderSchema),
+    verifyTenantAccess,
     orderStatusController.deleteOrder,
 );
 
@@ -115,6 +124,7 @@ router.delete(
     '/:orderId/hard',
     verifyJwt(UserRole.MANAGER, UserRole.OWNER),
     validateRequest(orderStatusValidation.deleteOrderSchema), // reuse existing — just needs orderId param
+    verifyTenantAccess,
     orderStatusController.hardDeleteOrder,
 );
 

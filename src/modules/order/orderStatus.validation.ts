@@ -3,8 +3,21 @@ import { z } from 'zod';
 // Create order
 const createOrderSchema = z.object({
     body: z.object({
+        customerId: z.string().uuid('Invalid customer ID'), // ← ADD
         restaurantId: z.string().uuid('Invalid restaurant ID'),
         tenantId: z.string().uuid('Invalid tenant ID'),
+        orderType: z.enum(['DINE_IN', 'TAKEAWAY', 'DELIVERY']), // ← added DELIVERY
+        paymentMethod: z.enum([
+            // ← tightened to enum
+            'CASH',
+            'CARD',
+            'MOBILE_PAYMENT',
+            'ONLINE_PAYMENT',
+        ]),
+        totalPrice: z.number().positive('Total price must be positive'),
+        notes: z.string().optional(),
+        tableId: z.string().uuid('Invalid table ID').optional(), // ← ADD
+        estimatedDeliveryTimeInMinutes: z.number().int().positive().optional(),
         items: z
             .array(
                 z.object({
@@ -16,14 +29,10 @@ const createOrderSchema = z.object({
                         .positive('Quantity must be positive'),
                     price: z.number().positive('Price must be positive'),
                     notes: z.string().optional(),
+                    variantId: z.string().uuid().optional(), // ← ADD
                 }),
             )
             .min(1, 'At least one item is required'),
-        totalPrice: z.number().positive('Total price must be positive'),
-        orderType: z.enum(['DINE_IN', 'TAKEAWAY']),
-        paymentMethod: z.string().optional(),
-        notes: z.string().optional(),
-        estimatedDeliveryTimeInMinutes: z.number().int().positive().optional(),
     }),
 });
 

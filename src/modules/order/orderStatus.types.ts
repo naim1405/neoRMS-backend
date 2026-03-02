@@ -1,4 +1,4 @@
-import { OrderStatus, OrderType } from '@prisma/client';
+import { OrderStatus, OrderType, PaymentMethod, PaymentStatus, VariantType } from '@prisma/client';
 
 // OrderItem Interface
 export interface IOrderItem {
@@ -8,6 +8,8 @@ export interface IOrderItem {
     name: string;
     quantity: number;
     price: number;
+    variantId?: string | null;
+    variantType?: VariantType | null;
     notes?: string | null;
     createdAt: Date;
     updatedAt: Date;
@@ -23,8 +25,10 @@ export interface IOrder {
     orderType: OrderType;
     items: IOrderItem[];
     totalPrice: number;
-    paymentMethod?: string | null;
-    paymentStatus?: string | null;
+    paymentMethod: PaymentMethod;
+    paymentStatus: PaymentStatus;
+    tableId?: string | null;
+    couponId?: string | null;
     notes?: string | null;
     estimatedDeliveryTimeInMinutes?: number | null;
     createdAt: Date;
@@ -34,12 +38,12 @@ export interface IOrder {
 // Create Order Request Body
 export interface ICreateOrderRequest {
     restaurantId: string;
-    tenantId: string;
     items: Array<{
         menuItemId: string;
         name: string;
         quantity: number;
         price: number;
+        variantId?: string;
         notes?: string;
     }>;
     totalPrice: number;
@@ -52,7 +56,7 @@ export interface ICreateOrderRequest {
 // Update Order Request Body
 export interface IUpdateOrderRequest {
     orderType?: OrderType;
-    paymentMethod?: string;
+    paymentMethod?: PaymentMethod;
     notes?: string;
     estimatedDeliveryTimeInMinutes?: number;
     items?: {
@@ -60,6 +64,7 @@ export interface IUpdateOrderRequest {
         name: string;
         quantity: number;
         price: number;
+        variantId?: string;
         notes?: string;
     }[];
 }
@@ -82,7 +87,7 @@ export interface IOrderStats {
     pendingOrders: number;
     completedOrders: number;
     cancelledOrders: number;
-    confirmedOrders?: number;
-    preparingOrders?: number;
-    readyOrders?: number;
+    confirmedOrders: number;
+    preparingOrders: number;
+    readyOrders: number;
 }

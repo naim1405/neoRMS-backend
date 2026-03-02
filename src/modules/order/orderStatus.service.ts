@@ -2,9 +2,8 @@ import ApiError from '../../utils/ApiError';
 import httpStatus from 'http-status';
 import prisma from '../../utils/prisma';
 import { IOrder, IUpdateOrderRequest, IOrderStats } from './orderStatus.types';
-import { Order, OrderStatus, OrderType, UserRole } from '@prisma/client';
+import { OrderStatus, OrderType, UserRole } from '@prisma/client';
 import { JwtPayload } from '../../types/jwt.types';
-import { is } from 'zod/v4/locales';
 
 /**
  * Create a new order
@@ -15,41 +14,89 @@ const createOrder = async (
     tenantId: string,
 ): Promise<IOrder> => {
     try {
-        // check Tenant match
-        if (orderData.tenantId !== tenantId) {
+        // For customers, always use their own id — never trust body customerId
+        const customerId =
+            requestingUser.role === UserRole.CUSTOMER
+                ? requestingUser.id
+                : orderData.customerId;
+
+        if (!customerId) {
             throw new ApiError(
-                httpStatus.FORBIDDEN,
-                'You do not have permission to create an order (tenant mismatch)',
+                httpStatus.BAD_REQUEST,
+                'customerId is required when placing an order as staff',
             );
         }
 
-        // customer can create only their orders
-        if (
-            requestingUser.role === UserRole.CUSTOMER &&
-            orderData.customerId !== requestingUser.id
-        ) {
+        // Validate restaurant belongs to this tenant
+        const restaurant = await (prisma as any).restaurant.findUnique({
+            where: { id: orderData.restaurantId },
+            select: { id: true, tenantId: true, isDeleted: true },
+        });
+        if (!restaurant || restaurant.tenantId !== tenantId || restaurant.isDeleted) {
             throw new ApiError(
-                httpStatus.FORBIDDEN,
-                'Customers can only create their own orders',
+                httpStatus.BAD_REQUEST,
+                'Restaurant not found or does not belong to this tenant',
             );
         }
+
+        // Validate tableId belongs to this restaurant/tenant
+        if (orderData.tableId) {
+            const table = await (prisma as any).table.findUnique({
+                where: { id: orderData.tableId },
+                select: { id: true, restaurantId: true, tenantId: true, isDeleted: true },
+            });
+            if (
+                !table ||
+                table.restaurantId !== orderData.restaurantId ||
+                table.tenantId !== tenantId ||
+                table.isDeleted
+            ) {
+                throw new ApiError(
+                    httpStatus.BAD_REQUEST,
+                    'Table not found or does not belong to this restaurant',
+                );
+            }
+        }
+
+        // Enrich items with variantType snapshot from the selected variant
+        const variantIds = orderData.items
+            .map((item: any) => item.variantId)
+            .filter(Boolean);
+
+        const variantTypeMap: Record<string, string> = {};
+        if (variantIds.length > 0) {
+            const variants = await (prisma as any).variant.findMany({
+                where: { id: { in: variantIds } },
+                select: { id: true, type: true },
+            });
+            for (const v of variants) {
+                variantTypeMap[v.id] = v.type;
+            }
+        }
+
+        const enrichedItems = orderData.items.map((item: any) => ({
+            ...item,
+            ...(item.variantId && variantTypeMap[item.variantId]
+                ? { variantType: variantTypeMap[item.variantId] }
+                : {}),
+        }));
 
         const order = await (prisma as any).order.create({
             data: {
-                customerId: orderData.customerId, // customerId is passed in the request body
-                restasurantId: orderData.restaurantId,
-                tenantId: orderData.tenantId,
+                customerId,
+                restaurantId: orderData.restaurantId,
+                tenantId: tenantId,
                 status: OrderStatus.PENDING,
                 orderType: orderData.orderType,
-
+                ...(orderData.tableId && { tableId: orderData.tableId }),
                 totalPrice: orderData.totalPrice,
                 paymentMethod: orderData.paymentMethod,
                 notes: orderData.notes,
                 estimatedDeliveryTimeInMinutes:
                     orderData.estimatedDeliveryTimeInMinutes,
-                lastUpdatedBy: requestingUser.id, // Track who created the order
+                lastUpdatedBy: requestingUser.id,
                 items: {
-                    create: orderData.items,
+                    create: enrichedItems,
                 },
             },
             include: {
@@ -73,10 +120,10 @@ const createOrder = async (
 const getOrderStatsByUserID = async (
     targetUserID: string,
     requestingUser: JwtPayload,
-    tenentId: string,
+    tenantId: string,
 ): Promise<IOrderStats> => {
     try {
-        // Saff or the user themselves can access the stats
+        // Staff or the user themselves can access the stats
         const isStaff = (
             [UserRole.WAITER, UserRole.MANAGER, UserRole.OWNER] as UserRole[]
         ).includes(requestingUser.role);
@@ -88,10 +135,11 @@ const getOrderStatsByUserID = async (
             );
         }
 
-        // base where clause
+        // base where clause — exclude soft-deleted orders
         const baseWhereClause = {
             customerId: targetUserID,
-            tenantId: tenentId, // tenant isolation
+            tenantId: tenantId,
+            isDeleted: false,
         };
 
         const [
@@ -185,23 +233,15 @@ const trackOrder = async (
         // STAFF (Waiter, Chef, Manager) can see any order.
         // CUSTOMERS can only see their own orders.
         const isStaff = (
-            [UserRole.WAITER, UserRole.CHEF, UserRole.MANAGER] as UserRole[]
+            [UserRole.OWNER, UserRole.WAITER, UserRole.CHEF, UserRole.MANAGER] as UserRole[]
         ).includes(requestingUser.role);
 
         const isCustomerOwnerOfOrder = order.customerId === requestingUser.id;
-        const isTenantMatch = order.tenantId === tenantId;
 
         if (!isStaff && !isCustomerOwnerOfOrder) {
             throw new ApiError(
                 httpStatus.FORBIDDEN,
                 'You do not have permission to track this order',
-            );
-        }
-
-        if (!isTenantMatch) {
-            throw new ApiError(
-                httpStatus.FORBIDDEN,
-                'You do not have permission to track this order (tenant mismatch)',
             );
         }
 
@@ -268,20 +308,10 @@ const getOrderById = async (
         ).includes(requestingUser.role);
         const isCustomerOwnerOfOrder = order.customerId === requestingUser.id;
 
-        // Tenant match
-        const isTenantMatch = order.tenantId === tenantId;
-
         if (!isStaff && !isCustomerOwnerOfOrder) {
             throw new ApiError(
                 httpStatus.FORBIDDEN,
                 'You do not have permission to view this order',
-            );
-        }
-
-        if (!isTenantMatch) {
-            throw new ApiError(
-                httpStatus.FORBIDDEN,
-                'You do not have permission to view this order (tenant mismatch)',
             );
         }
 
@@ -300,7 +330,7 @@ const getOrderById = async (
  */
 const getOrderByStatusAndOrderType = async (
     requestingUser: JwtPayload,
-    TenantId: string,
+    tenantId: string,
     status?: OrderStatus,
     limit: number = 10,
     page: number = 1,
@@ -311,7 +341,7 @@ const getOrderByStatusAndOrderType = async (
 
         // Base where clause with tenant isolation
         const whereClause: any = {
-            tenantId: TenantId,
+            tenantId: tenantId,
             isDeleted: false,
         };
 
@@ -385,7 +415,7 @@ const updateOrderStatus = async (
         }
 
         const isStaff = (
-            [UserRole.WAITER, UserRole.CHEF, UserRole.MANAGER] as UserRole[]
+            [UserRole.WAITER, UserRole.CHEF, UserRole.MANAGER, UserRole.OWNER] as UserRole[]
         ).includes(requestingUser.role);
 
         const isCustomerOwnerOfOrder = order.customerId === requestingUser.id;
@@ -408,13 +438,6 @@ const updateOrderStatus = async (
                     'Customers can only cancel a pending order',
                 );
             }
-        }
-
-        if (order.tenantId !== tenantId) {
-            throw new ApiError(
-                httpStatus.FORBIDDEN,
-                'You do not have permission to update this order (tenant mismatch)',
-            );
         }
 
         const validTransitions: { [key: string]: OrderStatus[] } = {
@@ -485,7 +508,7 @@ const updateOrder = async (
         }
 
         const isStaff = (
-            [UserRole.WAITER, UserRole.MANAGER] as UserRole[]
+            [UserRole.WAITER, UserRole.MANAGER, UserRole.OWNER] as UserRole[]
         ).includes(requestingUser.role);
 
         const isCustomerOwnerOfOrder = order.customerId === requestingUser.id;
@@ -524,8 +547,30 @@ const updateOrder = async (
             }
         }
 
-        // ← separate items from scalar fields — items need nested Prisma writes
+        // Enrich replacement items with variantType snapshot
         const { items, ...scalarFields } = updateData;
+        let enrichedItems = items;
+        if (items && items.length > 0) {
+            const variantIds = items
+                .map((item: any) => item.variantId)
+                .filter(Boolean);
+            const variantTypeMap: Record<string, string> = {};
+            if (variantIds.length > 0) {
+                const variants = await (prisma as any).variant.findMany({
+                    where: { id: { in: variantIds } },
+                    select: { id: true, type: true },
+                });
+                for (const v of variants) {
+                    variantTypeMap[v.id] = v.type;
+                }
+            }
+            enrichedItems = items.map((item: any) => ({
+                ...item,
+                ...(item.variantId && variantTypeMap[item.variantId]
+                    ? { variantType: variantTypeMap[item.variantId] }
+                    : {}),
+            }));
+        }
 
         const updatedOrder = await (prisma as any).order.update({
             where: {
@@ -534,10 +579,10 @@ const updateOrder = async (
             },
             data: {
                 ...scalarFields,
-                ...(items && {
+                ...(enrichedItems && {
                     items: {
-                        deleteMany: { orderId: orderId }, // wipe existing items
-                        createMany: { data: items }, // replace with new ones
+                        deleteMany: { orderId: orderId },
+                        createMany: { data: enrichedItems },
                     },
                 }),
             },
@@ -674,8 +719,7 @@ const hardDeleteOrder = async (
 
         await (prisma as any).order.delete({
             where: {
-                id: orderId,
-                tenantId: tenantId,
+                id: orderId, // tenantId already verified by findUnique above
             },
         });
 
@@ -685,6 +729,61 @@ const hardDeleteOrder = async (
         throw new ApiError(
             httpStatus.INTERNAL_SERVER_ERROR,
             'Failed to permanently delete order',
+        );
+    }
+};
+
+/**
+ * Get paginated order history for the requesting user
+ */
+const getUserOrders = async (
+    requestingUser: JwtPayload,
+    tenantId: string,
+    filters: {
+        status?: OrderStatus;
+        orderType?: OrderType;
+        limit?: number;
+        page?: number;
+    },
+) => {
+    try {
+        const { status, orderType, limit = 10, page = 1 } = filters;
+        const skip = (page - 1) * limit;
+
+        const whereClause: any = {
+            tenantId,
+            isDeleted: false,
+            customerId: requestingUser.id, // always scoped to the requesting user
+        };
+
+        if (status) whereClause.status = status;
+        if (orderType) whereClause.orderType = orderType;
+
+        const [orders, total] = await Promise.all([
+            (prisma as any).order.findMany({
+                where: whereClause,
+                include: { items: true },
+                take: limit,
+                skip,
+                orderBy: { createdAt: 'desc' },
+            }),
+            (prisma as any).order.count({ where: whereClause }),
+        ]);
+
+        return {
+            data: orders,
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            'Failed to fetch order history',
         );
     }
 };
@@ -699,4 +798,5 @@ export const orderStatusService = {
     hardDeleteOrder,
     createOrder,
     getOrderByStatusAndOrderType,
+    getUserOrders,
 };

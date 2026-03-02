@@ -68,7 +68,7 @@ async function verifyAccess(user: JwtPayload | SocketUser, tenantId: string) {
     } else if (user.role === UserRole.CHEF) {
         const chef = await prisma.chef.findUnique({
             where: {
-                id: user.id,
+                userId: user.id,
                 tenantId: tenantId,
             },
         });
@@ -78,7 +78,7 @@ async function verifyAccess(user: JwtPayload | SocketUser, tenantId: string) {
     } else if (user.role === UserRole.WAITER) {
         const waiter = await prisma.waiter.findUnique({
             where: {
-                id: user.id,
+                userId: user.id,
                 tenantId: tenantId,
             },
         });
@@ -88,7 +88,7 @@ async function verifyAccess(user: JwtPayload | SocketUser, tenantId: string) {
     } else if (user.role === UserRole.MANAGER) {
         const manager = await prisma.manager.findUnique({
             where: {
-                id: user.id,
+                userId: user.id,
                 tenantId: tenantId,
             },
         });

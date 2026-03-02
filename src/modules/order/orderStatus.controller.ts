@@ -3,64 +3,44 @@ import sendResponse from '../../utils/ApiResponse';
 import { orderStatusService } from './orderStatus.service';
 import { JwtPayload } from '../../types/jwt.types';
 
-// Get order by ID
-const getOrderById = catchAsync(async (req: any, res) => {
-    const { orderId } = req.params;
-    const user = req.user as JwtPayload;
+// Create new order
+const createOrder = catchAsync(async (req: any, res) => {
+    const creator = req.user as JwtPayload;
+    const orderData = req.body; // order data has customerID along with others
+    const tenantId = req.tenantId as string;
 
-    const result = await orderStatusService.getOrderById(orderId, user.id);
+    // TODO:
+    // [x] Order data validator
+    // [x] remove tenentID check
+    // [x] pass full creator
+    // [] restaurent ID ()
+    // [] get tenant Id of restaurant and send as the tenant id of the order
 
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: 'Order retrieved successfully',
-        data: result,
-    });
-});
-
-// Get all orders for the current user with optional filtering
-const getUserOrders = catchAsync(async (req: any, res) => {
-    const user = req.user as JwtPayload;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const page = parseInt(req.query.page as string) || 1;
-    const status = req.query.status as string | undefined;
-
-    const result = await orderStatusService.getUserOrders(
-        user.id,
-        limit,
-        page,
-        status as any,
+    const result = await orderStatusService.createOrder(
+        creator,
+        orderData,
+        tenantId,
     );
 
     sendResponse(res, {
-        statusCode: 200,
+        statusCode: 201,
         success: true,
-        message: 'User orders retrieved successfully',
-        meta: result.meta,
-        data: result.data,
-    });
-});
-
-// Track order status (real-time)
-const trackOrder = catchAsync(async (req: any, res) => {
-    const { orderId } = req.params;
-    const user = req.user as JwtPayload;
-
-    const result = await orderStatusService.trackOrder(orderId, user.id);
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: 'Order tracked successfully',
+        message: 'Order created successfully',
         data: result,
     });
 });
 
-// Get order statistics for the current user
-const getOrderStats = catchAsync(async (req: any, res) => {
-    const user = req.user as JwtPayload;
+// Get order statistics by userID
+const getOrderStatsByUserID = catchAsync(async (req: any, res) => {
+    const requestingUser = req.user as JwtPayload;
+    const targetUserID = req.params.userId;
+    const tenantId = req.tenantId as string;
 
-    const result = await orderStatusService.getOrderStats(user.id);
+    const result = await orderStatusService.getOrderStatsByUserID(
+        targetUserID,
+        requestingUser,
+        tenantId,
+    );
 
     sendResponse(res, {
         statusCode: 200,
@@ -70,14 +50,155 @@ const getOrderStats = catchAsync(async (req: any, res) => {
     });
 });
 
-const deleteOrder = catchAsync(async (req: any, res) => {});
-const updateOrder = catchAsync(async (req: any, res) => {});
+// Track order status in steps (0-5)
+const trackOrder = catchAsync(async (req: any, res) => {
+    const { orderId } = req.params;
+    const user = req.user as JwtPayload;
+    const tenantId = req.tenantId as string;
+
+    const result = await orderStatusService.trackOrder(orderId, user, tenantId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Order tracked successfully',
+        data: result,
+    });
+});
+
+// Get single order by ID
+const getOrderById = catchAsync(async (req: any, res) => {
+    const { orderId } = req.params;
+    const user = req.user as JwtPayload;
+    const tenantId = req.tenantId as string;
+
+    const result = await orderStatusService.getOrderById(
+        orderId,
+        user,
+        tenantId,
+    );
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Order retrieved successfully',
+        data: result,
+    });
+});
+
+// Get orders by status and order type
+// GET /orders/status/:status?limit=10&page=1&orderType=DINE_IN
+const getOrderByStatusAndOrderType = catchAsync(async (req: any, res) => {
+    const user = req.user as JwtPayload;
+    const tenantId = req.tenantId as string;
+
+    const { status } = req.params;
+
+    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string) || 1;
+    const orderType = req.query.orderType as any;
+
+    const result = await orderStatusService.getOrderByStatusAndOrderType(
+        user,
+        tenantId,
+        status as any,
+        limit,
+        page,
+        orderType,
+    );
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Orders retrieved successfully',
+        meta: result.meta,
+        data: result.data,
+    });
+});
+
+// PUT/orders/:orderId/status
+const updateOrderStatus = catchAsync(async (req: any, res) => {
+    const { orderId } = req.params;
+    const user = req.user as JwtPayload;
+    const { status } = req.body;
+    const tenantId = req.tenantId as string;
+
+    const result = await orderStatusService.updateOrderStatus(
+        orderId,
+        user,
+        status,
+        tenantId,
+    );
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Order status updated successfully',
+        data: result,
+    });
+});
+
+// update order details (items, total price, payment method, notes, etc.)
+
+const updateOrder = catchAsync(async (req: any, res) => {
+    const { orderId } = req.params;
+    const requestingUser = req.user as JwtPayload;
+    const updateData = req.body;
+    const tenantId = req.tenantId as string;
+
+    const result = await orderStatusService.updateOrder(
+        orderId,
+        requestingUser,
+        updateData,
+        tenantId,
+    );
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Order updated successfully',
+        data: result,
+    });
+});
+
+// soft Delete order- update isDeleted flag to true
+const deleteOrder = catchAsync(async (req: any, res) => {
+    const { orderId } = req.params;
+    const requestingUser = req.user as JwtPayload;
+    const tenantId = req.tenantId as string;
+
+    await orderStatusService.deleteOrder(orderId, requestingUser, tenantId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Order deleted successfully',
+    });
+});
+
+// Hard delete order
+const hardDeleteOrder = catchAsync(async (req: any, res) => {
+    const { orderId } = req.params;
+    const requestingUser = req.user as JwtPayload;
+    const tenantId = req.tenantId as string;
+
+    await orderStatusService.hardDeleteOrder(orderId, requestingUser, tenantId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Order permanently deleted successfully',
+    });
+});
 
 export const orderStatusController = {
-    getOrderById,
-    getUserOrders,
+    getOrderStatsByUserID,
     trackOrder,
-    getOrderStats,
-    deleteOrder,
+    getOrderById,
+    updateOrderStatus,
     updateOrder,
+    deleteOrder,
+    createOrder,
+    hardDeleteOrder,
+    getOrderByStatusAndOrderType,
 };

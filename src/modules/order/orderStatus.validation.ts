@@ -2,38 +2,50 @@ import { z } from 'zod';
 
 // Create order
 const createOrderSchema = z.object({
-    body: z.object({
-        customerId: z.string().uuid('Invalid customer ID'), // ← ADD
-        restaurantId: z.string().uuid('Invalid restaurant ID'),
-        tenantId: z.string().uuid('Invalid tenant ID'),
-        orderType: z.enum(['DINE_IN', 'TAKEAWAY', 'DELIVERY']), // ← added DELIVERY
-        paymentMethod: z.enum([
-            // ← tightened to enum
-            'CASH',
-            'CARD',
-            'MOBILE_PAYMENT',
-            'ONLINE_PAYMENT',
-        ]),
-        totalPrice: z.number().positive('Total price must be positive'),
-        notes: z.string().optional(),
-        tableId: z.string().uuid('Invalid table ID').optional(), // ← ADD
-        estimatedDeliveryTimeInMinutes: z.number().int().positive().optional(),
-        items: z
-            .array(
-                z.object({
-                    menuItemId: z.string().uuid('Invalid menu item ID'),
-                    name: z.string().min(1, 'Item name is required'),
-                    quantity: z
-                        .number()
-                        .int()
-                        .positive('Quantity must be positive'),
-                    price: z.number().positive('Price must be positive'),
-                    notes: z.string().optional(),
-                    variantId: z.string().uuid().optional(), // ← ADD
-                }),
-            )
-            .min(1, 'At least one item is required'),
-    }),
+    body: z
+        .object({
+            customerId: z.string().uuid('Invalid customer ID').optional(), // derived from JWT for CUSTOMER role; required for staff
+            restaurantId: z.string().uuid('Invalid restaurant ID'),
+            orderType: z.enum(['DINE_IN', 'TAKEAWAY', 'DELIVERY']),
+            paymentMethod: z.enum([
+                'CASH',
+                'CARD',
+                'MOBILE_PAYMENT',
+                'ONLINE_PAYMENT',
+            ]),
+            totalPrice: z.number().positive('Total price must be positive'),
+            notes: z.string().optional(),
+            tableId: z.string().uuid('Invalid table ID').optional(),
+            estimatedDeliveryTimeInMinutes: z
+                .number()
+                .int()
+                .positive()
+                .optional(),
+            items: z
+                .array(
+                    z.object({
+                        menuItemId: z.string().uuid('Invalid menu item ID'),
+                        name: z.string().min(1, 'Item name is required'),
+                        quantity: z
+                            .number()
+                            .int()
+                            .positive('Quantity must be positive'),
+                        price: z.number().positive('Price must be positive'),
+                        notes: z.string().optional(),
+                        variantId: z.string().uuid().optional(),
+                    }),
+                )
+                .min(1, 'At least one item is required'),
+        })
+        .superRefine((data, ctx) => {
+            if (data.orderType === 'DINE_IN' && !data.tableId) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'tableId is required for DINE_IN orders',
+                    path: ['tableId'],
+                });
+            }
+        }),
 });
 
 // Get single order by ID
@@ -64,7 +76,7 @@ const getUserOrdersSchema = z.object({
                 'CANCELLED',
             ])
             .optional(),
-        orderType: z.enum(['DINE_IN', 'TAKEAWAY']).optional(),
+        orderType: z.enum(['DINE_IN', 'TAKEAWAY', 'DELIVERY']).optional(),
     }),
 });
 
@@ -159,7 +171,7 @@ const getOrderByStatusAndOrderTypeSchema = z.object({
             .string()
             .optional()
             .refine(val => !val || /^\d+$/.test(val), 'Page must be a number'),
-        orderType: z.enum(['DINE_IN', 'TAKEAWAY']).optional(),
+        orderType: z.enum(['DINE_IN', 'TAKEAWAY', 'DELIVERY']).optional(),
     }),
 });
 

@@ -3,18 +3,35 @@ import sendResponse from '../../utils/ApiResponse';
 import { orderStatusService } from './orderStatus.service';
 import { JwtPayload } from '../../types/jwt.types';
 
+// Get order history for the requesting user (paginated)
+const getUserOrders = catchAsync(async (req: any, res) => {
+    const user = req.user as JwtPayload;
+    const tenantId = req.tenantId as string;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string) || 1;
+    const status = req.query.status as any;
+    const orderType = req.query.orderType as any;
+
+    const result = await orderStatusService.getUserOrders(
+        user,
+        tenantId,
+        { status, orderType, limit, page },
+    );
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Orders retrieved successfully',
+        meta: result.meta,
+        data: result.data,
+    });
+});
+
 // Create new order
 const createOrder = catchAsync(async (req: any, res) => {
     const creator = req.user as JwtPayload;
-    const orderData = req.body; // order data has customerID along with others
-    const tenantId = req.tenantId as string;
-
-    // TODO:
-    // [x] Order data validator
-    // [x] remove tenentID check
-    // [x] pass full creator
-    // [] restaurent ID ()
-    // [] get tenant Id of restaurant and send as the tenant id of the order
+    const orderData = req.body;
+    const tenantId = req.tenantId as string; // set by verifyTenantAccess from x-tenant-id header
 
     const result = await orderStatusService.createOrder(
         creator,
@@ -201,4 +218,5 @@ export const orderStatusController = {
     createOrder,
     hardDeleteOrder,
     getOrderByStatusAndOrderType,
+    getUserOrders,
 };

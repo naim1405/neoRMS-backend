@@ -25,6 +25,21 @@ router.post(
     orderStatusController.createOrder,
 );
 
+// Get order history for the requesting user
+// GET /orders?status=PENDING&orderType=DINE_IN&limit=10&page=1
+router.get(
+    '/',
+    verifyJwt(
+        UserRole.CUSTOMER,
+        UserRole.WAITER,
+        UserRole.MANAGER,
+        UserRole.OWNER,
+    ),
+    verifyTenantAccess,
+    validateRequest(orderStatusValidation.getUserOrdersSchema),
+    orderStatusController.getUserOrders,
+);
+
 // Get order statistics by user ID
 // GET /orders/stats/:userId
 router.get(
@@ -43,25 +58,16 @@ router.get(
 // GET /orders/track/:orderId
 router.get(
     '/track/:orderId',
-    verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER),
-    verifyTenantAccess,
-    validateRequest(orderStatusValidation.trackOrderSchema),
-    orderStatusController.trackOrder,
-);
-
-// Get single order by ID
-// GET /orders/:orderId
-router.get(
-    '/:orderId',
     verifyJwt(
         UserRole.CUSTOMER,
         UserRole.WAITER,
         UserRole.MANAGER,
         UserRole.CHEF,
+        UserRole.OWNER,
     ),
-    validateRequest(orderStatusValidation.getOrderByIdSchema),
     verifyTenantAccess,
-    orderStatusController.getOrderById,
+    validateRequest(orderStatusValidation.trackOrderSchema),
+    orderStatusController.trackOrder,
 );
 
 // Get orders by status and order type
@@ -73,10 +79,27 @@ router.get(
         UserRole.WAITER,
         UserRole.MANAGER,
         UserRole.CHEF,
+        UserRole.OWNER,
     ),
     validateRequest(orderStatusValidation.getOrderByStatusAndOrderTypeSchema),
     verifyTenantAccess,
     orderStatusController.getOrderByStatusAndOrderType,
+);
+
+// Get single order by ID
+// GET /orders/:orderId
+router.get(
+    '/:orderId',
+    verifyJwt(
+        UserRole.CUSTOMER,
+        UserRole.WAITER,
+        UserRole.MANAGER,
+        UserRole.CHEF,
+        UserRole.OWNER,
+    ),
+    validateRequest(orderStatusValidation.getOrderByIdSchema),
+    verifyTenantAccess,
+    orderStatusController.getOrderById,
 );
 
 // Update order status

@@ -14,8 +14,8 @@ export interface IOrderItem {
     name: string;
     quantity: number;
     price: number;
-    variantId: string;
-    variantType: VariantType | null;
+    variantId?: string;
+    variantType?: VariantType | null;
     notes?: string | null;
     createdAt: Date;
     updatedAt: Date;

@@ -32,7 +32,7 @@ const createOrderSchema = z.object({
                             .positive('Quantity must be positive'),
                         price: z.number().positive('Price must be positive'),
                         notes: z.string().optional(),
-                        variantId: z.string().uuid().optional(),
+                        variantId: z.string().uuid(),
                     }),
                 )
                 .min(1, 'At least one item is required'),

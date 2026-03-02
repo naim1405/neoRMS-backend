@@ -8,11 +8,7 @@ import { JwtPayload } from '../../types/jwt.types';
 /**
  * Create a new order
  */
-const createOrder = async (
-    requestingUser: JwtPayload,
-    orderData: any,
-    tenantId: string,
-): Promise<IOrder> => {
+const createOrder = async (requestingUser: JwtPayload, orderData: IOrder) => {
     try {
         // For customers, always use their own id — never trust body customerId
         const customerId =
@@ -28,11 +24,11 @@ const createOrder = async (
         }
 
         // Validate restaurant belongs to this tenant
-        const restaurant = await (prisma as any).restaurant.findUnique({
-            where: { id: orderData.restaurantId },
-            select: { id: true, tenantId: true, isDeleted: true },
+        const restaurant = await prisma.restaurant.findUnique({
+            where: { id: orderData.restaurantId, isDeleted: false },
+            select: { id: true, tenantId: true },
         });
-        if (!restaurant || restaurant.tenantId !== tenantId || restaurant.isDeleted) {
+        if (!restaurant) {
             throw new ApiError(
                 httpStatus.BAD_REQUEST,
                 'Restaurant not found or does not belong to this tenant',
@@ -41,16 +37,15 @@ const createOrder = async (
 
         // Validate tableId belongs to this restaurant/tenant
         if (orderData.tableId) {
-            const table = await (prisma as any).table.findUnique({
-                where: { id: orderData.tableId },
-                select: { id: true, restaurantId: true, tenantId: true, isDeleted: true },
+            const table = await prisma.table.findUnique({
+                where: { id: orderData.tableId, isDeleted: false },
+                select: {
+                    id: true,
+                    restaurantId: true,
+                    tenantId: true,
+                },
             });
-            if (
-                !table ||
-                table.restaurantId !== orderData.restaurantId ||
-                table.tenantId !== tenantId ||
-                table.isDeleted
-            ) {
+            if (!table || table.restaurantId !== orderData.restaurantId) {
                 throw new ApiError(
                     httpStatus.BAD_REQUEST,
                     'Table not found or does not belong to this restaurant',
@@ -60,12 +55,12 @@ const createOrder = async (
 
         // Enrich items with variantType snapshot from the selected variant
         const variantIds = orderData.items
-            .map((item: any) => item.variantId)
+            .map(item => item.variantId)
             .filter(Boolean);
 
         const variantTypeMap: Record<string, string> = {};
         if (variantIds.length > 0) {
-            const variants = await (prisma as any).variant.findMany({
+            const variants = await prisma.variant.findMany({
                 where: { id: { in: variantIds } },
                 select: { id: true, type: true },
             });
@@ -81,11 +76,11 @@ const createOrder = async (
                 : {}),
         }));
 
-        const order = await (prisma as any).order.create({
+        const order = await prisma.order.create({
             data: {
                 customerId,
                 restaurantId: orderData.restaurantId,
-                tenantId: tenantId,
+                tenantId: restaurant.tenantId,
                 status: OrderStatus.PENDING,
                 orderType: orderData.orderType,
                 ...(orderData.tableId && { tableId: orderData.tableId }),
@@ -106,6 +101,7 @@ const createOrder = async (
 
         return order;
     } catch (error) {
+        console.error('🚀 error : ', error);
         if (error instanceof ApiError) throw error;
         throw new ApiError(
             httpStatus.INTERNAL_SERVER_ERROR,
@@ -121,7 +117,7 @@ const getOrderStatsByUserID = async (
     targetUserID: string,
     requestingUser: JwtPayload,
     tenantId: string,
-): Promise<IOrderStats> => {
+) => {
     try {
         // Staff or the user themselves can access the stats
         const isStaff = (
@@ -151,40 +147,40 @@ const getOrderStatsByUserID = async (
             cancelledOrders,
             readyOrders,
         ] = await Promise.all([
-            (prisma as any).order.count({
+            prisma.order.count({
                 where: baseWhereClause,
             }),
-            (prisma as any).order.count({
+            prisma.order.count({
                 where: {
                     ...baseWhereClause,
                     status: OrderStatus.PENDING,
                 },
             }),
-            (prisma as any).order.count({
+            prisma.order.count({
                 where: {
                     ...baseWhereClause,
                     status: OrderStatus.CONFIRMED,
                 },
             }),
-            (prisma as any).order.count({
+            prisma.order.count({
                 where: {
                     ...baseWhereClause,
                     status: OrderStatus.PREPARING,
                 },
             }),
-            (prisma as any).order.count({
+            prisma.order.count({
                 where: {
                     ...baseWhereClause,
                     status: OrderStatus.DELIVERED,
                 },
             }),
-            (prisma as any).order.count({
+            prisma.order.count({
                 where: {
                     ...baseWhereClause,
                     status: OrderStatus.CANCELLED,
                 },
             }),
-            (prisma as any).order.count({
+            prisma.order.count({
                 where: { ...baseWhereClause, status: OrderStatus.READY },
             }),
         ]);
@@ -215,7 +211,7 @@ const trackOrder = async (
     tenantId: string,
 ) => {
     try {
-        const order = await (prisma as any).order.findUnique({
+        const order = await prisma.order.findUnique({
             where: {
                 id: orderId,
                 tenantId: tenantId,
@@ -233,7 +229,12 @@ const trackOrder = async (
         // STAFF (Waiter, Chef, Manager) can see any order.
         // CUSTOMERS can only see their own orders.
         const isStaff = (
-            [UserRole.OWNER, UserRole.WAITER, UserRole.CHEF, UserRole.MANAGER] as UserRole[]
+            [
+                UserRole.OWNER,
+                UserRole.WAITER,
+                UserRole.CHEF,
+                UserRole.MANAGER,
+            ] as UserRole[]
         ).includes(requestingUser.role);
 
         const isCustomerOwnerOfOrder = order.customerId === requestingUser.id;
@@ -284,9 +285,9 @@ const getOrderById = async (
     orderId: string,
     requestingUser: JwtPayload,
     tenantId: string,
-): Promise<IOrder> => {
+) => {
     try {
-        const order = await (prisma as any).order.findUnique({
+        const order = await prisma.order.findUnique({
             where: {
                 id: orderId,
                 tenantId: tenantId,
@@ -359,14 +360,14 @@ const getOrderByStatusAndOrderType = async (
 
         // 2. Parallel Execution (Faster)
         const [orders, total] = await Promise.all([
-            (prisma as any).order.findMany({
+            prisma.order.findMany({
                 where: whereClause,
                 include: { items: true },
                 take: limit,
                 skip: skip,
                 orderBy: { createdAt: 'desc' },
             }),
-            (prisma as any).order.count({
+            prisma.order.count({
                 where: whereClause,
             }),
         ]);
@@ -397,9 +398,9 @@ const updateOrderStatus = async (
     requestingUser: JwtPayload,
     status: OrderStatus,
     tenantId: string,
-): Promise<IOrder> => {
+) => {
     try {
-        const order = await (prisma as any).order.findUnique({
+        const order = await prisma.order.findUnique({
             where: {
                 id: orderId,
                 tenantId: tenantId,
@@ -415,7 +416,12 @@ const updateOrderStatus = async (
         }
 
         const isStaff = (
-            [UserRole.WAITER, UserRole.CHEF, UserRole.MANAGER, UserRole.OWNER] as UserRole[]
+            [
+                UserRole.WAITER,
+                UserRole.CHEF,
+                UserRole.MANAGER,
+                UserRole.OWNER,
+            ] as UserRole[]
         ).includes(requestingUser.role);
 
         const isCustomerOwnerOfOrder = order.customerId === requestingUser.id;
@@ -463,7 +469,7 @@ const updateOrderStatus = async (
             );
         }
 
-        const updatedOrder = await (prisma as any).order.update({
+        const updatedOrder = await prisma.order.update({
             where: {
                 id: orderId,
                 tenantId: tenantId,
@@ -492,9 +498,9 @@ const updateOrder = async (
     requestingUser: JwtPayload,
     updateData: IUpdateOrderRequest,
     tenantId: string,
-): Promise<IOrder> => {
+) => {
     try {
-        const order = await (prisma as any).order.findUnique({
+        const order = await prisma.order.findUnique({
             where: {
                 id: orderId,
                 tenantId: tenantId, // tenant isolation at query level
@@ -556,7 +562,7 @@ const updateOrder = async (
                 .filter(Boolean);
             const variantTypeMap: Record<string, string> = {};
             if (variantIds.length > 0) {
-                const variants = await (prisma as any).variant.findMany({
+                const variants = await prisma.variant.findMany({
                     where: { id: { in: variantIds } },
                     select: { id: true, type: true },
                 });
@@ -572,7 +578,7 @@ const updateOrder = async (
             }));
         }
 
-        const updatedOrder = await (prisma as any).order.update({
+        const updatedOrder = await prisma.order.update({
             where: {
                 id: orderId,
                 tenantId: tenantId,
@@ -607,7 +613,7 @@ const deleteOrder = async (
     tenantId: string,
 ) => {
     try {
-        const order = await (prisma as any).order.findUnique({
+        const order = await prisma.order.findUnique({
             where: {
                 id: orderId,
                 tenantId: tenantId, // tenant isolation
@@ -637,7 +643,7 @@ const deleteOrder = async (
                 );
             }
         } else if (role === UserRole.WAITER) {
-            const waiterAllowedStatuses = [
+            const waiterAllowedStatuses: OrderStatus[] = [
                 OrderStatus.PENDING,
                 OrderStatus.CANCELLED,
                 OrderStatus.DELIVERED,
@@ -658,7 +664,7 @@ const deleteOrder = async (
         }
 
         // Soft delete — mark as deleted, record who deleted it
-        await (prisma as any).order.update({
+        await prisma.order.update({
             where: {
                 id: orderId,
                 tenantId: tenantId,
@@ -687,7 +693,7 @@ const hardDeleteOrder = async (
     tenantId: string,
 ) => {
     try {
-        const order = await (prisma as any).order.findUnique({
+        const order = await prisma.order.findUnique({
             where: {
                 id: orderId,
                 tenantId: tenantId,
@@ -717,7 +723,7 @@ const hardDeleteOrder = async (
             );
         }
 
-        await (prisma as any).order.delete({
+        await prisma.order.delete({
             where: {
                 id: orderId, // tenantId already verified by findUnique above
             },
@@ -760,14 +766,14 @@ const getUserOrders = async (
         if (orderType) whereClause.orderType = orderType;
 
         const [orders, total] = await Promise.all([
-            (prisma as any).order.findMany({
+            prisma.order.findMany({
                 where: whereClause,
                 include: { items: true },
                 take: limit,
                 skip,
                 orderBy: { createdAt: 'desc' },
             }),
-            (prisma as any).order.count({ where: whereClause }),
+            prisma.order.count({ where: whereClause }),
         ]);
 
         return {

@@ -1,4 +1,10 @@
-import { OrderStatus, OrderType, PaymentMethod, PaymentStatus, VariantType } from '@prisma/client';
+import {
+    OrderStatus,
+    OrderType,
+    PaymentMethod,
+    PaymentStatus,
+    VariantType,
+} from '@prisma/client';
 
 // OrderItem Interface
 export interface IOrderItem {
@@ -8,8 +14,8 @@ export interface IOrderItem {
     name: string;
     quantity: number;
     price: number;
-    variantId?: string | null;
-    variantType?: VariantType | null;
+    variantId: string;
+    variantType: VariantType | null;
     notes?: string | null;
     createdAt: Date;
     updatedAt: Date;

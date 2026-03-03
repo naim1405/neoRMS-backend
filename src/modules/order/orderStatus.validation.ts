@@ -115,7 +115,7 @@ const updateOrderSchema = z.object({
                             .number()
                             .int()
                             .positive('Quantity must be positive'),
-                        price: z.number().positive('Price must be positive'),
+                        price: z.number().int().positive('Price must be positive'),
                         notes: z.string().optional(),
                         variantId: z.string().optional(),
                     }),

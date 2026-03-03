@@ -6,13 +6,13 @@ const createCouponSchema = z.object({
         .object({
             code: z.string().min(1, 'Coupon code is required').toUpperCase(),
             description: z.string().optional(),
-            discount: z.number().positive('Discount must be positive'),
+            discount: z.number().int().positive('Discount must be positive'),
             discountType: z.nativeEnum(DiscountType).optional(),
             validFrom: z.coerce.date(),
             validUntil: z.coerce.date(),
             usageLimit: z.number().int().positive().optional(),
-            minOrderAmount: z.number().nonnegative().optional(),
-            maxDiscount: z.number().positive().optional(),
+            minOrderAmount: z.number().int().nonnegative().optional(),
+            maxDiscount: z.number().int().positive().optional(),
             perUserLimit: z.number().int().positive().optional(),
             restaurantId: z.string().uuid().optional(),
         })
@@ -26,13 +26,13 @@ const updateCouponSchema = z.object({
     body: z.object({
         code: z.string().min(1).toUpperCase().optional(),
         description: z.string().optional(),
-        discount: z.number().positive().optional(),
+        discount: z.number().int().positive().optional(),
         discountType: z.nativeEnum(DiscountType).optional(),
         validFrom: z.coerce.date().optional(),
         validUntil: z.coerce.date().optional(),
         usageLimit: z.number().int().positive().optional(),
-        minOrderAmount: z.number().nonnegative().optional(),
-        maxDiscount: z.number().positive().optional(),
+        minOrderAmount: z.number().int().nonnegative().optional(),
+        maxDiscount: z.number().int().positive().optional(),
         perUserLimit: z.number().int().positive().optional(),
         status: z.nativeEnum(CouponStatus).optional(),
         restaurantId: z.string().uuid().optional(),
@@ -44,6 +44,7 @@ const validateCouponSchema = z.object({
         code: z.string().min(1, 'Coupon code is required'),
         orderAmount: z
             .number()
+            .int()
             .nonnegative('Order amount must be non-negative'),
         restaurantId: z.string().uuid('Invalid restaurant ID'),
     }),

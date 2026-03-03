@@ -21,8 +21,8 @@ const createMenuProductSchema = z.object({
             .array(
                 z.object({
                     type: z.nativeEnum(VariantType),
-                    price: z.number().positive('Price must be positive'),
-                    discount: z.number().min(0).max(100).optional(),
+                    price: z.number().int().positive('Price must be positive'),
+                    discount: z.number().int().min(0).max(100).optional(),
                 }),
             )
             .optional(),
@@ -30,7 +30,7 @@ const createMenuProductSchema = z.object({
             .array(
                 z.object({
                     name: z.string().min(1, 'Addon name is required'),
-                    price: z.number().positive('Addon price must be positive'),
+                    price: z.number().int().positive('Addon price must be positive'),
                 }),
             )
             .optional(),

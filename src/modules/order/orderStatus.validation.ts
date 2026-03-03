@@ -9,9 +9,13 @@ const createOrderSchema = z.object({
             restaurantId: z.string('Invalid restaurant ID'),
             orderType: z.enum(OrderType),
             paymentMethod: z.enum(PaymentMethod),
-            totalPrice: z.number().positive('Total price must be positive'),
+            totalPrice: z
+                .number()
+                .int()
+                .positive('Total price must be positive'),
             notes: z.string().optional(),
             tableId: z.string('Invalid table ID').optional(),
+            couponCode: z.string().optional(),
             items: z
                 .array(
                     z.object({
@@ -21,7 +25,10 @@ const createOrderSchema = z.object({
                             .number()
                             .int()
                             .positive('Quantity must be positive'),
-                        price: z.number().positive('Price must be positive'),
+                        price: z
+                            .number()
+                            .int()
+                            .positive('Price must be positive'),
                         notes: z.string().optional(),
                     }),
                 )

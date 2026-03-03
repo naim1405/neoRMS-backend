@@ -50,6 +50,7 @@ export interface ICreateOrderRequest {
     totalPrice: number;
     notes?: string;
     tableId?: string; // optional, for DINE_IN
+    couponCode?: string;
     items: Array<{
         menuItemId: string;
         variantId: string;

@@ -1,16 +1,12 @@
 import ApiError from '../../utils/ApiError';
 import httpStatus from 'http-status';
 import prisma from '../../utils/prisma';
-import {
-    IOrder,
-    IUpdateOrderRequest,
-    IOrderStats,
-    ICreateOrderRequest,
-} from './orderStatus.types';
-import { OrderStatus, OrderType, Prisma, UserRole } from '@prisma/client';
+import { IUpdateOrderRequest, ICreateOrderRequest } from './orderStatus.types';
+import { OrderStatus, Prisma, UserRole } from '@prisma/client';
 import { JwtPayload } from '../../types/jwt.types';
 import { IPaginationOptions } from '../../types/pagination.types';
 import { paginationHelpers } from '../../utils/pagination';
+import { couponService } from '../coupon/coupon.service';
 
 /**
  * Create a new order
@@ -76,7 +72,7 @@ const createOrder = async (
     });
     const variantMap = new Map(varinats.map(v => [v.id, v]));
     let totalPrice = 0;
-    const orderItemsToCreate = [];
+    const orderItemsToCreate: Prisma.OrderItemCreateManyOrderInput[] = [];
     for (const item of orderData.items) {
         const variant = variantMap.get(item.variantId);
         if (!variant) {
@@ -112,34 +108,71 @@ const createOrder = async (
             variantId: variant.id,
         });
     }
+
+    let couponData = null;
+
+    if (orderData.couponCode) {
+        couponData = await couponService.validateCoupon(
+            {
+                code: orderData.couponCode,
+                orderAmount: totalPrice,
+                restaurantId: restaurant.id,
+            },
+            customerId,
+        );
+
+        totalPrice = couponData.benefit.finalAmount;
+    }
+
     if (totalPrice != orderData.totalPrice) {
         throw new ApiError(
             httpStatus.BAD_REQUEST,
             `Total price mismatch. Expected ${totalPrice}, got ${orderData.totalPrice}`,
         );
     }
-    const createdOrder = await prisma.order.create({
-        data: {
-            //TODO: for waiter - allow status
-            status: OrderStatus.PENDING,
-            totalPrice: totalPrice,
-            paymentMethod: orderData.paymentMethod,
-            notes: orderData.notes,
-            customerId: customerId,
-            restaurantId: orderData.restaurantId,
-            tenantId: restaurant.tenantId,
-            tableId: orderData.tableId,
-            orderType: orderData.orderType,
-            //TODO: add coupon
-            //couponId:
-            items: {
-                createMany: {
-                    data: orderItemsToCreate,
+
+    const createdOrder = await prisma.$transaction(async tx => {
+        const createdOrder = await tx.order.create({
+            data: {
+                //TODO: for waiter - allow status
+                status: OrderStatus.PENDING,
+                totalPrice: totalPrice,
+                paymentMethod: orderData.paymentMethod,
+                notes: orderData.notes,
+                customerId: customerId,
+                restaurantId: orderData.restaurantId,
+                tenantId: restaurant.tenantId,
+                tableId: orderData.tableId,
+                orderType: orderData.orderType,
+                couponId: couponData ? couponData.coupon.id : null,
+                ...(couponData
+                    ? {
+                          couponUsage: {
+                              create: {
+                                  couponId: couponData.coupon.id,
+                                  customerId: customerId,
+                              },
+                          },
+                      }
+                    : {}),
+                items: {
+                    createMany: {
+                        data: orderItemsToCreate,
+                    },
                 },
+                lastUpdatedBy: requestingUser.id,
             },
-            lastUpdatedBy: requestingUser.id,
-        },
+        });
+
+        await tx.coupon.update({
+            where: { id: couponData?.coupon.id },
+            data: {
+                usedCount: { increment: 1 },
+            },
+        });
+        return createdOrder;
     });
+
     return createdOrder;
 };
 

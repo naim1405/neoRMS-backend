@@ -28,6 +28,10 @@ const getUserOrders = catchAsync(async (req: any, res) => {
     });
 });
 
+const getRestaurantOrders = catchAsync(async (req: any, res) => {
+    const result = await orderStatusService.getRestaurantOrders();
+});
+
 // Create new order
 const createOrder = catchAsync(async (req: any, res) => {
     const creator = req.user as JwtPayload;
@@ -101,36 +105,6 @@ const getOrderById = catchAsync(async (req: any, res) => {
         success: true,
         message: 'Order retrieved successfully',
         data: result,
-    });
-});
-
-// Get orders by status and order type
-// GET /orders/status/:status?limit=10&page=1&orderType=DINE_IN
-const getOrderByStatusAndOrderType = catchAsync(async (req: any, res) => {
-    const user = req.user as JwtPayload;
-    const tenantId = req.tenantId as string;
-
-    const { status } = req.params;
-
-    const limit = parseInt(req.query.limit as string) || 10;
-    const page = parseInt(req.query.page as string) || 1;
-    const orderType = req.query.orderType as any;
-
-    const result = await orderStatusService.getOrderByStatusAndOrderType(
-        user,
-        tenantId,
-        status as any,
-        limit,
-        page,
-        orderType,
-    );
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: 'Orders retrieved successfully',
-        meta: result.meta,
-        data: result.data,
     });
 });
 
@@ -218,6 +192,6 @@ export const orderStatusController = {
     deleteOrder,
     createOrder,
     hardDeleteOrder,
-    getOrderByStatusAndOrderType,
     getUserOrders,
+    getRestaurantOrders,
 };

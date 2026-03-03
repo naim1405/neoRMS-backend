@@ -122,24 +122,6 @@ const updateOrderSchema = z.object({
         ),
 });
 
-// Get order by status
-const getOrderByStatusAndOrderTypeSchema = z.object({
-    params: z.object({
-        status: z.nativeEnum(OrderType),
-    }),
-    query: z.object({
-        limit: z
-            .string()
-            .optional()
-            .refine(val => !val || /^\d+$/.test(val), 'Limit must be a number'),
-        page: z
-            .string()
-            .optional()
-            .refine(val => !val || /^\d+$/.test(val), 'Page must be a number'),
-        orderType: z.enum(OrderType).optional(),
-    }),
-});
-
 export const orderStatusValidation = {
     getOrderByIdSchema,
     getUserOrdersSchema,
@@ -148,5 +130,4 @@ export const orderStatusValidation = {
     updateOrderStatusSchema,
     updateOrderSchema,
     createOrderSchema,
-    getOrderByStatusAndOrderTypeSchema,
 };

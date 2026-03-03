@@ -28,16 +28,19 @@ router.post(
 // Get order history for the requesting user
 // GET /orders?status=PENDING&orderType=DINE_IN&limit=10&page=1
 router.get(
-    '/',
-    verifyJwt(
-        UserRole.CUSTOMER,
-        UserRole.WAITER,
-        UserRole.MANAGER,
-        UserRole.OWNER,
-    ),
+    '/customer-orders',
+    verifyJwt(UserRole.CUSTOMER),
     verifyTenantAccess,
     validateRequest(orderStatusValidation.getUserOrdersSchema),
     orderStatusController.getUserOrders,
+);
+
+router.get(
+    '/restaurant-orders/:restaurantId',
+    verifyJwt(UserRole.OWNER, UserRole.MANAGER, UserRole.WAITER, UserRole.CHEF),
+    verifyTenantAccess,
+    validateRequest(orderStatusValidation.getRestaurantOrdersSchema),
+    orderStatusController.getRestaurantOrders,
 );
 
 // Get order statistics by user ID
@@ -68,22 +71,6 @@ router.get(
     verifyTenantAccess,
     validateRequest(orderStatusValidation.trackOrderSchema),
     orderStatusController.trackOrder,
-);
-
-// Get orders by status and order type
-// GET /orders/status/:status?limit=10&page=1&orderType=DINE_IN
-router.get(
-    '/status/:status',
-    verifyJwt(
-        UserRole.CUSTOMER,
-        UserRole.WAITER,
-        UserRole.MANAGER,
-        UserRole.CHEF,
-        UserRole.OWNER,
-    ),
-    verifyTenantAccess,
-    validateRequest(orderStatusValidation.getOrderByStatusAndOrderTypeSchema),
-    orderStatusController.getOrderByStatusAndOrderType,
 );
 
 // Get single order by ID

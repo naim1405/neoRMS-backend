@@ -358,70 +358,6 @@ const getOrderById = async (
 };
 
 /**
- * Get all orders for a user by status and order Type with pagination
- */
-const getOrderByStatusAndOrderType = async (
-    requestingUser: JwtPayload,
-    tenantId: string,
-    status?: OrderStatus,
-    limit: number = 10,
-    page: number = 1,
-    orderType?: OrderType,
-) => {
-    try {
-        const skip = (page - 1) * limit;
-
-        // Base where clause with tenant isolation
-        const whereClause: any = {
-            tenantId: tenantId,
-            isDeleted: false,
-        };
-
-        if (requestingUser.role === UserRole.CUSTOMER) {
-            whereClause.customerId = requestingUser.id;
-        }
-
-        if (status) {
-            whereClause.status = status;
-        }
-
-        if (orderType) {
-            whereClause.orderType = orderType;
-        }
-
-        // 2. Parallel Execution (Faster)
-        const [orders, total] = await Promise.all([
-            prisma.order.findMany({
-                where: whereClause,
-                include: { items: true },
-                take: limit,
-                skip: skip,
-                orderBy: { createdAt: 'desc' },
-            }),
-            prisma.order.count({
-                where: whereClause,
-            }),
-        ]);
-
-        return {
-            data: orders,
-            meta: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-            },
-        };
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(
-            httpStatus.INTERNAL_SERVER_ERROR,
-            'Failed to fetch orders',
-        );
-    }
-};
-
-/**
  * Update order with authorization and status transition validation
  */
 const updateOrderStatus = async (
@@ -825,6 +761,8 @@ const getUserOrders = async (
     }
 };
 
+const getRestaurantOrders = async () => {};
+
 export const orderStatusService = {
     getOrderStatsByUserID,
     trackOrder,
@@ -834,6 +772,6 @@ export const orderStatusService = {
     deleteOrder,
     hardDeleteOrder,
     createOrder,
-    getOrderByStatusAndOrderType,
     getUserOrders,
+    getRestaurantOrders,
 };

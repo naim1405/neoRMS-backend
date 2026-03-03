@@ -31,8 +31,8 @@ router.get(
     '/customer-orders',
     verifyJwt(UserRole.CUSTOMER),
     verifyTenantAccess,
-    validateRequest(orderStatusValidation.getUserOrdersSchema),
-    orderStatusController.getUserOrders,
+    validateRequest(orderStatusValidation.getCustomerOrdersSchema),
+    orderStatusController.getCustomerOrders,
 );
 
 router.get(

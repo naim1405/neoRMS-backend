@@ -45,8 +45,8 @@ const getOrderByIdSchema = z.object({
     }),
 });
 
-// Get all user orders with pagination and filtering : Order History
-const getUserOrdersSchema = z.object({
+// Get all customer orders with pagination and filtering : Order History
+const getCustomerOrdersSchema = z.object({
     query: z.object({
         limit: z
             .string()
@@ -124,7 +124,7 @@ const updateOrderSchema = z.object({
 
 export const orderStatusValidation = {
     getOrderByIdSchema,
-    getUserOrdersSchema,
+    getCustomerOrdersSchema,
     trackOrderSchema,
     deleteOrderSchema,
     updateOrderStatusSchema,

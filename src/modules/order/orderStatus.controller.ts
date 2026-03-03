@@ -6,14 +6,14 @@ import pick from '../../utils/pick';
 import { paginationFields } from '../../const';
 import httpStatus from 'http-status';
 
-// Get order history for the requesting user (paginated)
-const getUserOrders = catchAsync(async (req: any, res) => {
+// Get order history for the requesting customer (paginated)
+const getCustomerOrders = catchAsync(async (req: any, res) => {
     const user = req.user as JwtPayload;
     const tenantId = req.tenantId as string;
     const options = pick(req.query, paginationFields);
     const filters = pick(req.query, ['status', 'orderType']);
 
-    const result = await orderStatusService.getUserOrders(
+    const result = await orderStatusService.getCustomerOrders(
         user,
         tenantId,
         filters,
@@ -210,6 +210,6 @@ export const orderStatusController = {
     deleteOrder,
     createOrder,
     hardDeleteOrder,
-    getUserOrders,
+    getCustomerOrders,
     getRestaurantOrders,
 };

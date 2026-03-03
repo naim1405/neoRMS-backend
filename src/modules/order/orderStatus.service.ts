@@ -709,9 +709,9 @@ const hardDeleteOrder = async (
 };
 
 /**
- * Get paginated order history for the requesting user
+ * Get paginated order history for the requesting customer
  */
-const getUserOrders = async (
+const getCustomerOrders = async (
     requestingUser: JwtPayload,
     tenantId: string,
     filters: any,
@@ -801,6 +801,6 @@ export const orderStatusService = {
     deleteOrder,
     hardDeleteOrder,
     createOrder,
-    getUserOrders,
+    getCustomerOrders,
     getRestaurantOrders,
 };

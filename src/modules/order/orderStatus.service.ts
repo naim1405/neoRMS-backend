@@ -721,18 +721,18 @@ const getUserOrders = async (
         paginationHelpers.calculatePagination(options);
     const { status, orderType } = filters;
 
-    const whereClause: any = {
+    const whereConditions: Prisma.OrderWhereInput = {
         tenantId,
         isDeleted: false,
         customerId: requestingUser.id, // always scoped to the requesting user
     };
 
-    if (status) whereClause.status = status;
-    if (orderType) whereClause.orderType = orderType;
+    if (status) whereConditions.status = status;
+    if (orderType) whereConditions.orderType = orderType;
 
     const [orders, total] = await Promise.all([
         prisma.order.findMany({
-            where: whereClause,
+            where: whereConditions,
             include: { items: true },
             take: limit,
             skip,
@@ -741,7 +741,7 @@ const getUserOrders = async (
                     ? { [sortBy]: sortOrder }
                     : { createdAt: 'desc' },
         }),
-        prisma.order.count({ where: whereClause }),
+        prisma.order.count({ where: whereConditions }),
     ]);
 
     return {

@@ -250,8 +250,8 @@ const validateCoupon = async (payload: IValidateCoupon, customerId: string) => {
         },
         benefit: {
             originalAmount: payload.orderAmount,
-            discountAmount: parseFloat(discountAmount.toFixed(2)),
-            finalAmount: parseFloat(finalAmount.toFixed(2)),
+            discountAmount: discountAmount,
+            finalAmount: finalAmount,
         },
     };
 };

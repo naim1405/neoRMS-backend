@@ -44,6 +44,7 @@ const createCoupon = async (
             perUserLimit: payload.perUserLimit,
             tenantId,
             restaurantId: payload.restaurantId,
+            lastUpdatedBy: user.id,
         },
     });
 
@@ -97,6 +98,7 @@ const updateCoupon = async (
     restaurantId: string,
     tenantId: string,
     payload: IUpdateCoupon,
+    user: JwtPayload,
 ) => {
     const coupon = await prisma.coupon.findFirst({
         where: { id: couponId, restaurantId, tenantId, isDeleted: false },
@@ -128,6 +130,7 @@ const updateCoupon = async (
             validUntil: payload.validUntil
                 ? new Date(payload.validUntil)
                 : undefined,
+            lastUpdatedBy: user.id,
         },
     });
 
@@ -221,7 +224,9 @@ const validateCoupon = async (payload: IValidateCoupon, customerId: string) => {
     // Calculate discount
     let discountAmount: number;
     if (coupon.discountType === 'PERCENTAGE') {
-        discountAmount = (payload.orderAmount * coupon.discount) / 100;
+        discountAmount = Math.round(
+            (payload.orderAmount * coupon.discount) / 100,
+        );
         if (coupon.maxDiscount !== null) {
             discountAmount = Math.min(discountAmount, coupon.maxDiscount);
         }

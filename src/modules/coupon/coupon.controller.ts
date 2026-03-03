@@ -51,6 +51,7 @@ const updateCoupon = catchAsync(async (req: any, res) => {
         req.params.restaurantId,
         req.tenantId as string,
         req.body,
+        req.user as JwtPayload,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,

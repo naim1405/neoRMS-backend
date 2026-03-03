@@ -2,22 +2,24 @@ import { z } from 'zod';
 import { CouponStatus, DiscountType } from '@prisma/client';
 
 const createCouponSchema = z.object({
-    body: z.object({
-        code: z.string().min(1, 'Coupon code is required').toUpperCase(),
-        description: z.string().optional(),
-        discount: z.number().positive('Discount must be positive'),
-        discountType: z.nativeEnum(DiscountType).optional(),
-        validFrom: z.coerce.date(),
-        validUntil: z.coerce.date(),
-        usageLimit: z.number().int().positive().optional(),
-        minOrderAmount: z.number().nonnegative().optional(),
-        maxDiscount: z.number().positive().optional(),
-        perUserLimit: z.number().int().positive().optional(),
-        restaurantId: z.string().uuid().optional(),
-    }).refine(data => new Date(data.validUntil) > new Date(data.validFrom), {
-        message: 'validUntil must be after validFrom',
-        path: ['validUntil'],
-    }),
+    body: z
+        .object({
+            code: z.string().min(1, 'Coupon code is required').toUpperCase(),
+            description: z.string().optional(),
+            discount: z.number().positive('Discount must be positive'),
+            discountType: z.nativeEnum(DiscountType).optional(),
+            validFrom: z.coerce.date(),
+            validUntil: z.coerce.date(),
+            usageLimit: z.number().int().positive().optional(),
+            minOrderAmount: z.number().nonnegative().optional(),
+            maxDiscount: z.number().positive().optional(),
+            perUserLimit: z.number().int().positive().optional(),
+            restaurantId: z.string().uuid().optional(),
+        })
+        .refine(data => new Date(data.validUntil) > new Date(data.validFrom), {
+            message: 'validUntil must be after validFrom',
+            path: ['validUntil'],
+        }),
 });
 
 const updateCouponSchema = z.object({
@@ -40,7 +42,9 @@ const updateCouponSchema = z.object({
 const validateCouponSchema = z.object({
     body: z.object({
         code: z.string().min(1, 'Coupon code is required'),
-        orderAmount: z.number().nonnegative('Order amount must be non-negative'),
+        orderAmount: z
+            .number()
+            .nonnegative('Order amount must be non-negative'),
         restaurantId: z.string().uuid('Invalid restaurant ID'),
     }),
 });

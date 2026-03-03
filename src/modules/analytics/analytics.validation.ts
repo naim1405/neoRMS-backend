@@ -5,7 +5,9 @@ const dateRangeQuerySchema = z.object({
     query: z.object({
         startDate: z
             .string()
-            .datetime({ message: 'startDate must be a valid ISO 8601 datetime' })
+            .datetime({
+                message: 'startDate must be a valid ISO 8601 datetime',
+            })
             .optional(),
         endDate: z
             .string()

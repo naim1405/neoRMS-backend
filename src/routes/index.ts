@@ -37,7 +37,7 @@ const allRoutes = [
         path: '/menuProduct',
         route: menuProductRoutes,
     },
-    {      
+    {
         path: '/inventory',
         route: inventoryRoutes,
     },

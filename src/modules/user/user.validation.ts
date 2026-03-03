@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const signupSchema = z.object({
     body: z.object({
-        email: z.string().email('Invalid email address'),
+        email: z.email('Invalid email address'),
         fullName: z.string().min(1, 'Full name is required'),
         password: z.string().min(6, 'Password must be at least 6 characters'),
         avatar: z.string().optional(),
@@ -14,11 +14,11 @@ const signupSchema = z.object({
 
 const createStaffSchema = z.object({
     body: z.object({
-        email: z.string().email('Invalid email address'),
+        email: z.email({ message: 'Invalid email address' }),
         fullName: z.string().min(1, 'Full name is required'),
         password: z.string().min(6, 'Password must be at least 6 characters'),
         avatar: z.string().optional(),
-        restaurantId: z.string().uuid('Invalid restaurant ID'),
+        restaurantId: z.string('Invalid restaurant ID'),
     }),
 });
 

@@ -37,7 +37,7 @@ const createOrderSchema = z.object({
         .superRefine((data, ctx) => {
             if (data.orderType === 'DINE_IN' && !data.tableId) {
                 ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
+                    code: 'custom',
                     message: 'tableId is required for DINE_IN orders',
                     path: ['tableId'],
                 });
@@ -115,7 +115,10 @@ const updateOrderSchema = z.object({
                             .number()
                             .int()
                             .positive('Quantity must be positive'),
-                        price: z.number().int().positive('Price must be positive'),
+                        price: z
+                            .number()
+                            .int()
+                            .positive('Price must be positive'),
                         notes: z.string().optional(),
                         variantId: z.string().optional(),
                     }),

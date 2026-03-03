@@ -5,9 +5,9 @@ import { IngredientUnit } from '@prisma/client';
 const createRestaurantInventorySchema = z.object({
     body: z
         .object({
-            ingredientId: z.string().uuid().optional(),
+            ingredientId: z.string().optional(),
             name: z.string().min(1).optional(),
-            unit: z.nativeEnum(IngredientUnit).optional(),
+            unit: z.enum(IngredientUnit).optional(),
             availableQuantity: z
                 .number()
                 .min(0, 'Available quantity must be >= 0'),

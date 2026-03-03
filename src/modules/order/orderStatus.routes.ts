@@ -39,7 +39,6 @@ router.get(
     '/restaurant-orders/:restaurantId',
     verifyJwt(UserRole.OWNER, UserRole.MANAGER, UserRole.WAITER, UserRole.CHEF),
     verifyTenantAccess,
-    validateRequest(orderStatusValidation.getRestaurantOrdersSchema),
     orderStatusController.getRestaurantOrders,
 );
 

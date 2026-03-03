@@ -754,7 +754,43 @@ const getUserOrders = async (
     };
 };
 
-const getRestaurantOrders = async () => {};
+const getRestaurantOrders = async (
+    tenantId: string,
+    restaurantId: string,
+    filters: any,
+    options: IPaginationOptions,
+) => {
+    const { limit, page, skip, sortBy, sortOrder } =
+        paginationHelpers.calculatePagination(options);
+    const { status, orderType } = filters;
+    const wheereConditions: Prisma.OrderWhereInput = {
+        tenantId: tenantId,
+        restaurantId: restaurantId,
+    };
+    if (status) wheereConditions.status = status;
+    if (orderType) wheereConditions.orderType = orderType;
+    const [result, total] = await Promise.all([
+        await prisma.order.findMany({
+            where: wheereConditions,
+            skip,
+            take: limit,
+            orderBy:
+                sortBy && sortOrder
+                    ? { [sortBy]: sortOrder }
+                    : { createdAt: 'desc' },
+        }),
+        await prisma.order.count({ where: wheereConditions }),
+    ]);
+
+    return {
+        data: result,
+        meta: {
+            total,
+            page,
+            limit,
+        },
+    };
+};
 
 export const orderStatusService = {
     getOrderStatsByUserID,

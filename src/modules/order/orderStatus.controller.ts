@@ -4,6 +4,7 @@ import { orderStatusService } from './orderStatus.service';
 import { JwtPayload } from '../../types/jwt.types';
 import pick from '../../utils/pick';
 import { paginationFields } from '../../const';
+import httpStatus from 'http-status';
 
 // Get order history for the requesting user (paginated)
 const getUserOrders = catchAsync(async (req: any, res) => {
@@ -29,7 +30,24 @@ const getUserOrders = catchAsync(async (req: any, res) => {
 });
 
 const getRestaurantOrders = catchAsync(async (req: any, res) => {
-    const result = await orderStatusService.getRestaurantOrders();
+    const tenantId = req.tenantId as string;
+    const { restaurantId } = req.params;
+    const options = pick(req.query, paginationFields);
+    const filters = pick(req.query, ['status', 'orderType']);
+    const result = await orderStatusService.getRestaurantOrders(
+        tenantId,
+        restaurantId,
+        filters,
+        options,
+    );
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Restaurant Orders retrieved successfully',
+        meta: result.meta,
+        data: result.data,
+    });
 });
 
 // Create new order

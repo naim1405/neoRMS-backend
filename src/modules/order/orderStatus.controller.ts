@@ -12,11 +12,12 @@ const getUserOrders = catchAsync(async (req: any, res) => {
     const status = req.query.status as any;
     const orderType = req.query.orderType as any;
 
-    const result = await orderStatusService.getUserOrders(
-        user,
-        tenantId,
-        { status, orderType, limit, page },
-    );
+    const result = await orderStatusService.getUserOrders(user, tenantId, {
+        status,
+        orderType,
+        limit,
+        page,
+    });
 
     sendResponse(res, {
         statusCode: 200,

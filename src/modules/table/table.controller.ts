@@ -45,8 +45,9 @@ const updateTable = catchAsync(async (req: any, res: any) => {
     });
 });
 
-const deleteTable = catchAsync(async (req: any, res: any) => {
-    const result = await tableService.deleteTable(
+const softDeleteTable = catchAsync(async (req: any, res: any) => {
+    const result = await tableService.softDeleteTable(
+        req.user as JwtPayload,
         req.params.tableId as string,
         req.params.restaurantId as string,
         req.tenantId as string,
@@ -55,6 +56,20 @@ const deleteTable = catchAsync(async (req: any, res: any) => {
         statusCode: httpstatus.OK,
         success: true,
         message: 'Table deleted successfully',
+        data: result,
+    });
+});
+
+const hardDeleteTable = catchAsync(async (req: any, res: any) => {
+    const result = await tableService.hardDeleteTable(
+        req.params.tableId as string,
+        req.params.restaurantId as string,
+        req.tenantId as string,
+    );
+    sendResponse(res, {
+        statusCode: httpstatus.OK,
+        success: true,
+        message: 'Table permanently deleted successfully',
         data: result,
     });
 });
@@ -74,8 +89,8 @@ const createReservation = catchAsync(async (req: any, res: any) => {
     });
 });
 
-const updateReservation = catchAsync(async (req: any, res: any) => {
-    const result = await tableService.updateReservation(
+const updateReservationDetails = catchAsync(async (req: any, res: any) => {
+    const result = await tableService.updateReservationDetails(
         req.params.reservationId as string,
         req.body,
         req.user as JwtPayload,
@@ -89,26 +104,12 @@ const updateReservation = catchAsync(async (req: any, res: any) => {
     });
 });
 
-const updateTableState = catchAsync(async (req: any, res: any) => {
-    const result = await tableService.updateTableState(
-        req.params.reservationId as string,
-        req.body,
-        req.tenantId as string,
-    );
-    sendResponse(res, {
-        statusCode: httpstatus.OK,
-        success: true,
-        message: 'Table state updated successfully',
-        data: result,
-    });
-});
-
 export const tableController = {
     createTable,
     getTablesByRestaurantID,
     updateTable,
-    deleteTable,
+    softDeleteTable,
+    hardDeleteTable,
     createReservation,
-    updateReservation,
-    updateTableState,
+    updateReservationDetails,
 };

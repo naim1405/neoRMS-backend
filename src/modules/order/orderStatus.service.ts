@@ -8,7 +8,11 @@ import { JwtPayload } from '../../types/jwt.types';
 /**
  * Create a new order
  */
-const createOrder = async (requestingUser: JwtPayload, orderData: IOrder) => {
+const createOrder = async (
+    requestingUser: JwtPayload,
+    orderData: IOrder,
+    tenantId: string,
+) => {
     try {
         // For customers, always use their own id — never trust body customerId
         const customerId =
@@ -56,7 +60,7 @@ const createOrder = async (requestingUser: JwtPayload, orderData: IOrder) => {
         // Enrich items with variantType snapshot from the selected variant
         const variantIds = orderData.items
             .map(item => item.variantId)
-            .filter(Boolean);
+            .filter(Boolean) as string[];
 
         const variantTypeMap: Record<string, string> = {};
         if (variantIds.length > 0) {

@@ -136,7 +136,8 @@ const updateTable = async (
     return updated;
 };
 
-const deleteTable = async (
+const softDeleteTable = async (
+    requestingUser: JwtPayload,
     tableId: string,
     restaurantId: string,
     tenantId: string,
@@ -157,11 +158,34 @@ const deleteTable = async (
         where: { id: tableId },
         data: {
             isDeleted: true,
-            deletedBy: null, // ideally should be the user ID
+            deletedBy: requestingUser.id,
         },
     });
 
     return deleted;
+};
+
+const hardDeleteTable = async (
+    tableId: string,
+    restaurantId: string,
+    tenantId: string,
+) => {
+    const table = await prisma.table.findUnique({
+        where: { id: tableId, restaurantId, tenantId },
+    });
+
+    if (!table) {
+        throw new ApiError(
+            httpstatus.NOT_FOUND,
+            'Table not found or does not belong to your restaurant',
+        );
+    }
+
+    // Hard delete
+    await prisma.table.delete({
+        where: { id: tableId },
+    });
+    return { id: tableId };
 };
 
 const createReservation = async (
@@ -197,24 +221,17 @@ const createReservation = async (
         scheduledFromDate.getTime() + (payload.duration || 60) * 60000,
     );
 
-    const conflictingReservation = await prisma.reservation.findFirst({
-        where: {
-            tableId,
-            isDeleted: false,
-            status: {
-                in: [
-                    ReservationStatus.PENDING,
-                    ReservationStatus.CONFIRMED,
-                    ReservationStatus.SEATED,
-                ],
-            },
-            scheduledFor: {
-                lt: scheduledToDate,
-            },
-        },
-    });
+    const conflictingReservation = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT id FROM "Reservation"
+    WHERE "tableId" = ${tableId}
+      AND "isDeleted" = false
+      AND "status" IN ('PENDING', 'CONFIRMED', 'SEATED')
+      AND "scheduledFor" < ${scheduledToDate}
+      AND "scheduledFor" + ("duration" * INTERVAL '1 minute') > ${scheduledFromDate}
+    LIMIT 1
+`;
 
-    if (conflictingReservation) {
+    if (conflictingReservation.length > 0) {
         throw new ApiError(
             httpstatus.BAD_REQUEST,
             'Table is already reserved for this time slot',
@@ -248,7 +265,7 @@ const createReservation = async (
     return reservation;
 };
 
-const updateReservation = async (
+const updateReservationDetails = async (
     reservationId: string,
     payload: IUpdateReservation,
     user: JwtPayload,
@@ -271,6 +288,29 @@ const updateReservation = async (
         throw new ApiError(
             httpstatus.FORBIDDEN,
             'You can only update your own reservations',
+        );
+    }
+
+    // Authorization check - Customer can only cancel, not change to CONFIRMED or SEATED
+    if (
+        user.role === 'CUSTOMER' &&
+        payload.status &&
+        payload.status !== ReservationStatus.CANCELLED
+    ) {
+        throw new ApiError(
+            httpstatus.FORBIDDEN,
+            'Customers can not change reservation status to CONFIRMED or SEATED. Can only cancel their reservation.',
+        );
+    }
+
+    // Authorization check - customer can only change the status
+    if (
+        user.role === 'CUSTOMER' &&
+        (payload.scheduledFor || payload.duration || payload.partySize)
+    ) {
+        throw new ApiError(
+            httpstatus.FORBIDDEN,
+            'Customers can only update reservation status,Notes and contact phone, not other details.',
         );
     }
 
@@ -304,7 +344,7 @@ const updateReservation = async (
     return updated;
 };
 
-const updateTableState = async (
+const updateReservationStatus = async (
     reservationId: string,
     payload: { status?: string },
     tenantId: string,
@@ -386,8 +426,9 @@ export const tableService = {
     createTable,
     getTablesByRestaurantID,
     updateTable,
-    deleteTable,
+    softDeleteTable,
+    hardDeleteTable,
     createReservation,
-    updateReservation,
-    updateTableState,
+    updateReservationDetails,
+    updateReservationStatus,
 };

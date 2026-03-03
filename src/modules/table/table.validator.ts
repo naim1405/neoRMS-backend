@@ -51,7 +51,7 @@ const createReservationSchema = z.object({
     }),
 });
 
-const updateReservationStatusSchema = z.object({
+const updateReservationDetailsSchema = z.object({
     body: z.object({
         status: z.enum([
             ReservationStatus.PENDING,
@@ -72,30 +72,11 @@ const updateReservationStatusSchema = z.object({
     }),
 });
 
-const updateTableStateSchema = z.object({
-    body: z.object({
-        status: z
-            .enum([
-                ReservationStatus.PENDING,
-                ReservationStatus.CONFIRMED,
-                ReservationStatus.SEATED,
-                ReservationStatus.COMPLETED,
-                ReservationStatus.CANCELLED,
-                ReservationStatus.NO_SHOW,
-            ] as [string, ...string[]])
-            .optional(),
-    }),
-    params: z.object({
-        reservationId: z.string().uuid('Invalid reservation ID'),
-    }),
-});
-
 export const tableValidator = {
     createTableSchema,
     getTablesSchema,
     updateTableSchema,
     deleteTableSchema,
     createReservationSchema,
-    updateReservationStatusSchema,
-    updateTableStateSchema,
+    updateReservationDetailsSchema,
 };

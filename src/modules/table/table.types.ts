@@ -1,3 +1,5 @@
+import { ReservationStatus } from '@prisma/client';
+
 export interface ICreateTable {
     tableNumber: number;
     capacity?: number;
@@ -9,7 +11,7 @@ export interface IUpdateTable {
 }
 
 export interface ICreateReservation {
-    scheduledFor: string | Date;
+    scheduledFor: string | Date; // time when scheduled time starts
     duration?: number;
     partySize: number;
     notes?: string;
@@ -17,7 +19,7 @@ export interface ICreateReservation {
 }
 
 export interface IUpdateReservation {
-    status?: string;
+    status?: ReservationStatus;
     scheduledFor?: string | Date;
     duration?: number;
     partySize?: number;
@@ -25,6 +27,6 @@ export interface IUpdateReservation {
     contactPhone?: string;
 }
 
-export interface IUpdateTableState {
+export interface IupdateReservationStatus {
     status?: string;
 }

@@ -9,6 +9,8 @@ import {
 } from './orderStatus.types';
 import { OrderStatus, OrderType, Prisma, UserRole } from '@prisma/client';
 import { JwtPayload } from '../../types/jwt.types';
+import { IPaginationOptions } from '../../types/pagination.types';
+import { paginationHelpers } from '../../utils/pagination';
 
 /**
  * Create a new order
@@ -712,53 +714,44 @@ const hardDeleteOrder = async (
 const getUserOrders = async (
     requestingUser: JwtPayload,
     tenantId: string,
-    filters: {
-        status?: OrderStatus;
-        orderType?: OrderType;
-        limit?: number;
-        page?: number;
-    },
+    filters: any,
+    options: IPaginationOptions,
 ) => {
-    try {
-        const { status, orderType, limit = 10, page = 1 } = filters;
-        const skip = (page - 1) * limit;
+    const { limit, page, skip, sortBy, sortOrder } =
+        paginationHelpers.calculatePagination(options);
+    const { status, orderType } = filters;
 
-        const whereClause: any = {
-            tenantId,
-            isDeleted: false,
-            customerId: requestingUser.id, // always scoped to the requesting user
-        };
+    const whereClause: any = {
+        tenantId,
+        isDeleted: false,
+        customerId: requestingUser.id, // always scoped to the requesting user
+    };
 
-        if (status) whereClause.status = status;
-        if (orderType) whereClause.orderType = orderType;
+    if (status) whereClause.status = status;
+    if (orderType) whereClause.orderType = orderType;
 
-        const [orders, total] = await Promise.all([
-            prisma.order.findMany({
-                where: whereClause,
-                include: { items: true },
-                take: limit,
-                skip,
-                orderBy: { createdAt: 'desc' },
-            }),
-            prisma.order.count({ where: whereClause }),
-        ]);
+    const [orders, total] = await Promise.all([
+        prisma.order.findMany({
+            where: whereClause,
+            include: { items: true },
+            take: limit,
+            skip,
+            orderBy:
+                sortBy && sortOrder
+                    ? { [sortBy]: sortOrder }
+                    : { createdAt: 'desc' },
+        }),
+        prisma.order.count({ where: whereClause }),
+    ]);
 
-        return {
-            data: orders,
-            meta: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-            },
-        };
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(
-            httpStatus.INTERNAL_SERVER_ERROR,
-            'Failed to fetch order history',
-        );
-    }
+    return {
+        data: orders,
+        meta: {
+            total,
+            page,
+            limit,
+        },
+    };
 };
 
 const getRestaurantOrders = async () => {};

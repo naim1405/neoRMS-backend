@@ -2,22 +2,22 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/ApiResponse';
 import { orderStatusService } from './orderStatus.service';
 import { JwtPayload } from '../../types/jwt.types';
+import pick from '../../utils/pick';
+import { paginationFields } from '../../const';
 
 // Get order history for the requesting user (paginated)
 const getUserOrders = catchAsync(async (req: any, res) => {
     const user = req.user as JwtPayload;
     const tenantId = req.tenantId as string;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const page = parseInt(req.query.page as string) || 1;
-    const status = req.query.status as any;
-    const orderType = req.query.orderType as any;
+    const options = pick(req.query, paginationFields);
+    const filters = pick(req.query, ['status', 'orderType']);
 
-    const result = await orderStatusService.getUserOrders(user, tenantId, {
-        status,
-        orderType,
-        limit,
-        page,
-    });
+    const result = await orderStatusService.getUserOrders(
+        user,
+        tenantId,
+        filters,
+        options,
+    );
 
     sendResponse(res, {
         statusCode: 200,

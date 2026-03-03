@@ -1,4 +1,4 @@
-import { OrderType, PaymentMethod } from '@prisma/client';
+import { OrderStatus, OrderType, PaymentMethod } from '@prisma/client';
 import { z } from 'zod';
 
 // Create order
@@ -7,8 +7,8 @@ const createOrderSchema = z.object({
         .object({
             customerId: z.string('Invalid customer ID').optional(), // derived from JWT for CUSTOMER role; required for staff
             restaurantId: z.string('Invalid restaurant ID'),
-            orderType: z.nativeEnum(OrderType),
-            paymentMethod: z.nativeEnum(PaymentMethod),
+            orderType: z.enum(OrderType),
+            paymentMethod: z.enum(PaymentMethod),
             totalPrice: z.number().positive('Total price must be positive'),
             notes: z.string().optional(),
             tableId: z.string('Invalid table ID').optional(),
@@ -41,7 +41,7 @@ const createOrderSchema = z.object({
 // Get single order by ID
 const getOrderByIdSchema = z.object({
     params: z.object({
-        orderId: z.string().uuid('Invalid order ID'),
+        orderId: z.string('Invalid order ID'),
     }),
 });
 
@@ -56,61 +56,43 @@ const getUserOrdersSchema = z.object({
             .string()
             .optional()
             .refine(val => !val || /^\d+$/.test(val), 'Page must be a number'),
-        status: z
-            .enum([
-                'PENDING',
-                'CONFIRMED',
-                'PREPARING',
-                'READY',
-                'DELIVERED',
-                'CANCELLED',
-            ])
-            .optional(),
-        orderType: z.enum(['DINE_IN', 'TAKEAWAY', 'DELIVERY']).optional(),
+        status: z.enum(OrderStatus).optional(),
+        orderType: z.enum(OrderType).optional(),
     }),
 });
 
 // Track order status in real-time
 const trackOrderSchema = z.object({
     params: z.object({
-        orderId: z.string().uuid('Invalid order ID'),
+        orderId: z.string('Invalid order ID'),
     }),
 });
 
 // Delete order
 const deleteOrderSchema = z.object({
     params: z.object({
-        orderId: z.string().uuid('Invalid order ID'),
+        orderId: z.string('Invalid order ID'),
     }),
 });
 
 // Update order status
 const updateOrderStatusSchema = z.object({
     params: z.object({
-        orderId: z.string().uuid('Invalid order ID'),
+        orderId: z.string('Invalid order ID'),
     }),
     body: z.object({
-        status: z.enum([
-            'PENDING',
-            'CONFIRMED',
-            'PREPARING',
-            'READY',
-            'DELIVERED',
-            'CANCELLED',
-        ]),
+        status: z.enum(OrderStatus),
     }),
 });
 // update order details
 const updateOrderSchema = z.object({
     params: z.object({
-        orderId: z.string().uuid('Invalid order ID'),
+        orderId: z.string('Invalid order ID'),
     }),
     body: z
         .object({
-            orderType: z.enum(['DINE_IN', 'TAKEAWAY', 'DELIVERY']).optional(),
-            paymentMethod: z
-                .enum(['CASH', 'CARD', 'MOBILE_PAYMENT', 'ONLINE_PAYMENT'])
-                .optional(),
+            orderType: z.enum(OrderType).optional(),
+            paymentMethod: z.enum(PaymentMethod).optional(),
             notes: z.string().optional(),
             estimatedDeliveryTimeInMinutes: z
                 .number()
@@ -120,7 +102,7 @@ const updateOrderSchema = z.object({
             items: z
                 .array(
                     z.object({
-                        menuItemId: z.string().uuid('Invalid menu item ID'),
+                        menuItemId: z.string('Invalid menu item ID'),
                         name: z.string().min(1, 'Item name is required'),
                         quantity: z
                             .number()
@@ -128,7 +110,7 @@ const updateOrderSchema = z.object({
                             .positive('Quantity must be positive'),
                         price: z.number().positive('Price must be positive'),
                         notes: z.string().optional(),
-                        variantId: z.string().uuid().optional(),
+                        variantId: z.string().optional(),
                     }),
                 )
                 .min(1, 'At least one item is required if items are provided')
@@ -143,14 +125,7 @@ const updateOrderSchema = z.object({
 // Get order by status
 const getOrderByStatusAndOrderTypeSchema = z.object({
     params: z.object({
-        status: z.enum([
-            'PENDING',
-            'CONFIRMED',
-            'PREPARING',
-            'READY',
-            'DELIVERED',
-            'CANCELLED',
-        ]),
+        status: z.nativeEnum(OrderType),
     }),
     query: z.object({
         limit: z
@@ -161,7 +136,7 @@ const getOrderByStatusAndOrderTypeSchema = z.object({
             .string()
             .optional()
             .refine(val => !val || /^\d+$/.test(val), 'Page must be a number'),
-        orderType: z.enum(['DINE_IN', 'TAKEAWAY', 'DELIVERY']).optional(),
+        orderType: z.enum(OrderType).optional(),
     }),
 });
 

@@ -81,8 +81,8 @@ router.get(
         UserRole.CHEF,
         UserRole.OWNER,
     ),
-    validateRequest(orderStatusValidation.getOrderByStatusAndOrderTypeSchema),
     verifyTenantAccess,
+    validateRequest(orderStatusValidation.getOrderByStatusAndOrderTypeSchema),
     orderStatusController.getOrderByStatusAndOrderType,
 );
 
@@ -97,8 +97,8 @@ router.get(
         UserRole.CHEF,
         UserRole.OWNER,
     ),
-    validateRequest(orderStatusValidation.getOrderByIdSchema),
     verifyTenantAccess,
+    validateRequest(orderStatusValidation.getOrderByIdSchema),
     orderStatusController.getOrderById,
 );
 
@@ -112,8 +112,8 @@ router.put(
         UserRole.MANAGER,
         UserRole.CHEF,
     ),
-    validateRequest(orderStatusValidation.updateOrderStatusSchema),
     verifyTenantAccess,
+    validateRequest(orderStatusValidation.updateOrderStatusSchema),
     orderStatusController.updateOrderStatus,
 );
 
@@ -121,8 +121,8 @@ router.put(
 router.put(
     '/:orderId',
     verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER),
-    validateRequest(orderStatusValidation.updateOrderSchema),
     verifyTenantAccess,
+    validateRequest(orderStatusValidation.updateOrderSchema),
     orderStatusController.updateOrder,
 );
 
@@ -136,8 +136,8 @@ router.patch(
         UserRole.MANAGER,
         UserRole.OWNER,
     ),
-    validateRequest(orderStatusValidation.deleteOrderSchema),
     verifyTenantAccess,
+    validateRequest(orderStatusValidation.deleteOrderSchema),
     orderStatusController.deleteOrder,
 );
 
@@ -146,8 +146,8 @@ router.patch(
 router.delete(
     '/:orderId/hard',
     verifyJwt(UserRole.MANAGER, UserRole.OWNER),
-    validateRequest(orderStatusValidation.deleteOrderSchema), // reuse existing — just needs orderId param
     verifyTenantAccess,
+    validateRequest(orderStatusValidation.deleteOrderSchema), // reuse existing — just needs orderId param
     orderStatusController.hardDeleteOrder,
 );
 

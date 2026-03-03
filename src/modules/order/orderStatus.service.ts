@@ -16,6 +16,7 @@ import { JwtPayload } from '../../types/jwt.types';
 const createOrder = async (
     requestingUser: JwtPayload,
     orderData: ICreateOrderRequest,
+    tenantId: string,
 ) => {
     //TODO: ensure floating point precision for price fields to avoid mismatch issues
     // For customers, always use their own id — never trust body customerId
@@ -33,7 +34,11 @@ const createOrder = async (
 
     // Validate restaurant exists
     const restaurant = await prisma.restaurant.findUnique({
-        where: { id: orderData.restaurantId, isDeleted: false },
+        where: {
+            id: orderData.restaurantId,
+            isDeleted: false,
+            tenantId: tenantId,
+        },
         select: { id: true, tenantId: true },
     });
     if (!restaurant) {

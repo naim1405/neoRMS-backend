@@ -20,6 +20,7 @@ router.post(
         UserRole.MANAGER,
         UserRole.OWNER,
     ),
+    verifyTenantAccess,
     validateRequest(orderStatusValidation.createOrderSchema),
     orderStatusController.createOrder,
 );

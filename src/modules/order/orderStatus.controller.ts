@@ -32,8 +32,13 @@ const getUserOrders = catchAsync(async (req: any, res) => {
 const createOrder = catchAsync(async (req: any, res) => {
     const creator = req.user as JwtPayload;
     const orderData = req.body;
+    const tenantId = req.tenantId as string;
 
-    const result = await orderStatusService.createOrder(creator, orderData);
+    const result = await orderStatusService.createOrder(
+        creator,
+        orderData,
+        tenantId,
+    );
 
     sendResponse(res, {
         statusCode: 201,

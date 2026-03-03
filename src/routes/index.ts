@@ -4,6 +4,7 @@ const router = express.Router();
 
 import { analyticsRoutes } from '../modules/analytics/analytics.routes';
 import { authRoutes } from '../modules/auth/auth.routes';
+import { couponRoutes } from '../modules/coupon/coupon.routes';
 import { inventoryRoutes } from '../modules/inventory/inventory.routes';
 import { menuProductRoutes } from '../modules/menuProduct/menuProduct.routes';
 import { orderRoutes } from '../modules/order/orderStatus.routes';
@@ -39,6 +40,10 @@ const allRoutes = [
     {      
         path: '/inventory',
         route: inventoryRoutes,
+    },
+    {
+        path: '/coupon',
+        route: couponRoutes,
     },
     {
         path: '/dummy',

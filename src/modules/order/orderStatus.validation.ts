@@ -1,38 +1,28 @@
+import { OrderType, PaymentMethod } from '@prisma/client';
 import { z } from 'zod';
 
 // Create order
 const createOrderSchema = z.object({
     body: z
         .object({
-            customerId: z.string().uuid('Invalid customer ID').optional(), // derived from JWT for CUSTOMER role; required for staff
-            restaurantId: z.string().uuid('Invalid restaurant ID'),
-            orderType: z.enum(['DINE_IN', 'TAKEAWAY', 'DELIVERY']),
-            paymentMethod: z.enum([
-                'CASH',
-                'CARD',
-                'MOBILE_PAYMENT',
-                'ONLINE_PAYMENT',
-            ]),
+            customerId: z.string('Invalid customer ID').optional(), // derived from JWT for CUSTOMER role; required for staff
+            restaurantId: z.string('Invalid restaurant ID'),
+            orderType: z.nativeEnum(OrderType),
+            paymentMethod: z.nativeEnum(PaymentMethod),
             totalPrice: z.number().positive('Total price must be positive'),
             notes: z.string().optional(),
-            tableId: z.string().uuid('Invalid table ID').optional(),
-            estimatedDeliveryTimeInMinutes: z
-                .number()
-                .int()
-                .positive()
-                .optional(),
+            tableId: z.string('Invalid table ID').optional(),
             items: z
                 .array(
                     z.object({
-                        menuItemId: z.string().uuid('Invalid menu item ID'),
-                        name: z.string().min(1, 'Item name is required'),
+                        menuItemId: z.string('Invalid menu item ID'),
+                        variantId: z.string(),
                         quantity: z
                             .number()
                             .int()
                             .positive('Quantity must be positive'),
                         price: z.number().positive('Price must be positive'),
                         notes: z.string().optional(),
-                        variantId: z.string().uuid(),
                     }),
                 )
                 .min(1, 'At least one item is required'),

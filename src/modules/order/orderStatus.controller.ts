@@ -12,11 +12,12 @@ const getUserOrders = catchAsync(async (req: any, res) => {
     const status = req.query.status as any;
     const orderType = req.query.orderType as any;
 
-    const result = await orderStatusService.getUserOrders(
-        user,
-        tenantId,
-        { status, orderType, limit, page },
-    );
+    const result = await orderStatusService.getUserOrders(user, tenantId, {
+        status,
+        orderType,
+        limit,
+        page,
+    });
 
     sendResponse(res, {
         statusCode: 200,
@@ -31,13 +32,8 @@ const getUserOrders = catchAsync(async (req: any, res) => {
 const createOrder = catchAsync(async (req: any, res) => {
     const creator = req.user as JwtPayload;
     const orderData = req.body;
-    const tenantId = req.tenantId as string; // set by verifyTenantAccess from x-tenant-id header
 
-    const result = await orderStatusService.createOrder(
-        creator,
-        orderData,
-        tenantId,
-    );
+    const result = await orderStatusService.createOrder(creator, orderData);
 
     sendResponse(res, {
         statusCode: 201,

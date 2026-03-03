@@ -1,113 +1,146 @@
 import ApiError from '../../utils/ApiError';
 import httpStatus from 'http-status';
 import prisma from '../../utils/prisma';
-import { IOrder, IUpdateOrderRequest, IOrderStats } from './orderStatus.types';
-import { OrderStatus, OrderType, UserRole } from '@prisma/client';
+import {
+    IOrder,
+    IUpdateOrderRequest,
+    IOrderStats,
+    ICreateOrderRequest,
+} from './orderStatus.types';
+import { OrderStatus, OrderType, Prisma, UserRole } from '@prisma/client';
 import { JwtPayload } from '../../types/jwt.types';
+import { IPaginationOptions } from '../../types/pagination.types';
+import { paginationHelpers } from '../../utils/pagination';
 
 /**
  * Create a new order
  */
-const createOrder = async (requestingUser: JwtPayload, orderData: IOrder) => {
-    try {
-        // For customers, always use their own id — never trust body customerId
-        const customerId =
-            requestingUser.role === UserRole.CUSTOMER
-                ? requestingUser.id
-                : orderData.customerId;
+const createOrder = async (
+    requestingUser: JwtPayload,
+    orderData: ICreateOrderRequest,
+    tenantId: string,
+) => {
+    //TODO: ensure floating point precision for price fields to avoid mismatch issues
+    // For customers, always use their own id — never trust body customerId
+    const customerId =
+        requestingUser.role === UserRole.CUSTOMER
+            ? requestingUser.id
+            : orderData.customerId;
 
-        if (!customerId) {
-            throw new ApiError(
-                httpStatus.BAD_REQUEST,
-                'customerId is required when placing an order as staff',
-            );
-        }
-
-        // Validate restaurant belongs to this tenant
-        const restaurant = await prisma.restaurant.findUnique({
-            where: { id: orderData.restaurantId, isDeleted: false },
-            select: { id: true, tenantId: true },
-        });
-        if (!restaurant) {
-            throw new ApiError(
-                httpStatus.BAD_REQUEST,
-                'Restaurant not found or does not belong to this tenant',
-            );
-        }
-
-        // Validate tableId belongs to this restaurant/tenant
-        if (orderData.tableId) {
-            const table = await prisma.table.findUnique({
-                where: { id: orderData.tableId, isDeleted: false },
-                select: {
-                    id: true,
-                    restaurantId: true,
-                    tenantId: true,
-                },
-            });
-            if (!table || table.restaurantId !== orderData.restaurantId) {
-                throw new ApiError(
-                    httpStatus.BAD_REQUEST,
-                    'Table not found or does not belong to this restaurant',
-                );
-            }
-        }
-
-        // Enrich items with variantType snapshot from the selected variant
-        const variantIds = orderData.items
-            .map(item => item.variantId)
-            .filter(Boolean);
-
-        const variantTypeMap: Record<string, string> = {};
-        if (variantIds.length > 0) {
-            const variants = await prisma.variant.findMany({
-                where: { id: { in: variantIds } },
-                select: { id: true, type: true },
-            });
-            for (const v of variants) {
-                variantTypeMap[v.id] = v.type;
-            }
-        }
-
-        const enrichedItems = orderData.items.map((item: any) => ({
-            ...item,
-            ...(item.variantId && variantTypeMap[item.variantId]
-                ? { variantType: variantTypeMap[item.variantId] }
-                : {}),
-        }));
-
-        const order = await prisma.order.create({
-            data: {
-                customerId,
-                restaurantId: orderData.restaurantId,
-                tenantId: restaurant.tenantId,
-                status: OrderStatus.PENDING,
-                orderType: orderData.orderType,
-                ...(orderData.tableId && { tableId: orderData.tableId }),
-                totalPrice: orderData.totalPrice,
-                paymentMethod: orderData.paymentMethod,
-                notes: orderData.notes,
-                estimatedDeliveryTimeInMinutes:
-                    orderData.estimatedDeliveryTimeInMinutes,
-                lastUpdatedBy: requestingUser.id,
-                items: {
-                    create: enrichedItems,
-                },
-            },
-            include: {
-                items: true,
-            },
-        });
-
-        return order;
-    } catch (error) {
-        console.error('🚀 error : ', error);
-        if (error instanceof ApiError) throw error;
+    if (!customerId) {
         throw new ApiError(
-            httpStatus.INTERNAL_SERVER_ERROR,
-            'Failed to create order',
+            httpStatus.BAD_REQUEST,
+            'customerId is required when placing an order as staff',
         );
     }
+
+    // Validate restaurant exists
+    const restaurant = await prisma.restaurant.findUnique({
+        where: {
+            id: orderData.restaurantId,
+            isDeleted: false,
+            tenantId: tenantId,
+        },
+        select: { id: true, tenantId: true },
+    });
+    if (!restaurant) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Restaurant not found');
+    }
+
+    // Validate tableId belongs to this restaurant/tenant
+    if (orderData.tableId) {
+        const table = await prisma.table.findUnique({
+            where: {
+                id: orderData.tableId,
+                isDeleted: false,
+                restaurantId: restaurant.id,
+            },
+            select: {
+                id: true,
+                restaurantId: true,
+                tenantId: true,
+            },
+        });
+        if (!table) {
+            throw new ApiError(httpStatus.BAD_REQUEST, 'Table not found');
+        }
+    }
+
+    // Enrich items with variantType snapshot from the selected variant
+    const variantIds = orderData.items.map(item => item.variantId);
+    const varinats = await prisma.variant.findMany({
+        where: { id: { in: variantIds } },
+        include: {
+            menuProduct: true,
+        },
+    });
+    const variantMap = new Map(varinats.map(v => [v.id, v]));
+    let totalPrice = 0;
+    const orderItemsToCreate = [];
+    for (const item of orderData.items) {
+        const variant = variantMap.get(item.variantId);
+        if (!variant) {
+            throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                `Variant not found for variantId: ${item.variantId}`,
+            );
+        }
+        if (
+            !variant.menuProduct ||
+            variant.menuProduct.restaurantId !== restaurant.id
+        ) {
+            throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                `Variant ${item.variantId} does not belong to the specified restaurant`,
+            );
+        }
+        if (variant.price !== item.price) {
+            throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                `Price mismatch for variant ${item.variantId}. Expected ${variant.price}, got ${item.price}`,
+            );
+        }
+        totalPrice += item.price * item.quantity;
+        //TODO: add addons
+        orderItemsToCreate.push({
+            name: variant.menuProduct.productTitle,
+            quantity: item.quantity,
+            price: item.price,
+            notes: item.notes,
+            variantType: variant.type,
+            menuItemId: variant.menuProductId,
+            variantId: variant.id,
+        });
+    }
+    if (totalPrice != orderData.totalPrice) {
+        throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            `Total price mismatch. Expected ${totalPrice}, got ${orderData.totalPrice}`,
+        );
+    }
+    const createdOrder = await prisma.order.create({
+        data: {
+            //TODO: for waiter - allow status
+            status: OrderStatus.PENDING,
+            totalPrice: totalPrice,
+            paymentMethod: orderData.paymentMethod,
+            notes: orderData.notes,
+            customerId: customerId,
+            restaurantId: orderData.restaurantId,
+            tenantId: restaurant.tenantId,
+            tableId: orderData.tableId,
+            orderType: orderData.orderType,
+            //TODO: add coupon
+            //couponId:
+            items: {
+                createMany: {
+                    data: orderItemsToCreate,
+                },
+            },
+            lastUpdatedBy: requestingUser.id,
+        },
+    });
+    return createdOrder;
 };
 
 /**
@@ -322,70 +355,6 @@ const getOrderById = async (
         throw new ApiError(
             httpStatus.INTERNAL_SERVER_ERROR,
             'Failed to fetch order',
-        );
-    }
-};
-
-/**
- * Get all orders for a user by status and order Type with pagination
- */
-const getOrderByStatusAndOrderType = async (
-    requestingUser: JwtPayload,
-    tenantId: string,
-    status?: OrderStatus,
-    limit: number = 10,
-    page: number = 1,
-    orderType?: OrderType,
-) => {
-    try {
-        const skip = (page - 1) * limit;
-
-        // Base where clause with tenant isolation
-        const whereClause: any = {
-            tenantId: tenantId,
-            isDeleted: false,
-        };
-
-        if (requestingUser.role === UserRole.CUSTOMER) {
-            whereClause.customerId = requestingUser.id;
-        }
-
-        if (status) {
-            whereClause.status = status;
-        }
-
-        if (orderType) {
-            whereClause.orderType = orderType;
-        }
-
-        // 2. Parallel Execution (Faster)
-        const [orders, total] = await Promise.all([
-            prisma.order.findMany({
-                where: whereClause,
-                include: { items: true },
-                take: limit,
-                skip: skip,
-                orderBy: { createdAt: 'desc' },
-            }),
-            prisma.order.count({
-                where: whereClause,
-            }),
-        ]);
-
-        return {
-            data: orders,
-            meta: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-            },
-        };
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(
-            httpStatus.INTERNAL_SERVER_ERROR,
-            'Failed to fetch orders',
         );
     }
 };
@@ -745,53 +714,82 @@ const hardDeleteOrder = async (
 const getUserOrders = async (
     requestingUser: JwtPayload,
     tenantId: string,
-    filters: {
-        status?: OrderStatus;
-        orderType?: OrderType;
-        limit?: number;
-        page?: number;
-    },
+    filters: any,
+    options: IPaginationOptions,
 ) => {
-    try {
-        const { status, orderType, limit = 10, page = 1 } = filters;
-        const skip = (page - 1) * limit;
+    const { limit, page, skip, sortBy, sortOrder } =
+        paginationHelpers.calculatePagination(options);
+    const { status, orderType } = filters;
 
-        const whereClause: any = {
-            tenantId,
-            isDeleted: false,
-            customerId: requestingUser.id, // always scoped to the requesting user
-        };
+    const whereConditions: Prisma.OrderWhereInput = {
+        tenantId,
+        isDeleted: false,
+        customerId: requestingUser.id, // always scoped to the requesting user
+    };
 
-        if (status) whereClause.status = status;
-        if (orderType) whereClause.orderType = orderType;
+    if (status) whereConditions.status = status;
+    if (orderType) whereConditions.orderType = orderType;
 
-        const [orders, total] = await Promise.all([
-            prisma.order.findMany({
-                where: whereClause,
-                include: { items: true },
-                take: limit,
-                skip,
-                orderBy: { createdAt: 'desc' },
-            }),
-            prisma.order.count({ where: whereClause }),
-        ]);
+    const [orders, total] = await Promise.all([
+        prisma.order.findMany({
+            where: whereConditions,
+            include: { items: true },
+            take: limit,
+            skip,
+            orderBy:
+                sortBy && sortOrder
+                    ? { [sortBy]: sortOrder }
+                    : { createdAt: 'desc' },
+        }),
+        prisma.order.count({ where: whereConditions }),
+    ]);
 
-        return {
-            data: orders,
-            meta: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-            },
-        };
-    } catch (error) {
-        if (error instanceof ApiError) throw error;
-        throw new ApiError(
-            httpStatus.INTERNAL_SERVER_ERROR,
-            'Failed to fetch order history',
-        );
-    }
+    return {
+        data: orders,
+        meta: {
+            total,
+            page,
+            limit,
+        },
+    };
+};
+
+const getRestaurantOrders = async (
+    tenantId: string,
+    restaurantId: string,
+    filters: any,
+    options: IPaginationOptions,
+) => {
+    const { limit, page, skip, sortBy, sortOrder } =
+        paginationHelpers.calculatePagination(options);
+    const { status, orderType } = filters;
+    const wheereConditions: Prisma.OrderWhereInput = {
+        tenantId: tenantId,
+        restaurantId: restaurantId,
+    };
+    if (status) wheereConditions.status = status;
+    if (orderType) wheereConditions.orderType = orderType;
+    const [result, total] = await Promise.all([
+        await prisma.order.findMany({
+            where: wheereConditions,
+            skip,
+            take: limit,
+            orderBy:
+                sortBy && sortOrder
+                    ? { [sortBy]: sortOrder }
+                    : { createdAt: 'desc' },
+        }),
+        await prisma.order.count({ where: wheereConditions }),
+    ]);
+
+    return {
+        data: result,
+        meta: {
+            total,
+            page,
+            limit,
+        },
+    };
 };
 
 export const orderStatusService = {
@@ -803,6 +801,6 @@ export const orderStatusService = {
     deleteOrder,
     hardDeleteOrder,
     createOrder,
-    getOrderByStatusAndOrderType,
     getUserOrders,
+    getRestaurantOrders,
 };

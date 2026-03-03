@@ -20,6 +20,7 @@ router.post(
         UserRole.MANAGER,
         UserRole.OWNER,
     ),
+    verifyTenantAccess,
     validateRequest(orderStatusValidation.createOrderSchema),
     orderStatusController.createOrder,
 );
@@ -27,16 +28,18 @@ router.post(
 // Get order history for the requesting user
 // GET /orders?status=PENDING&orderType=DINE_IN&limit=10&page=1
 router.get(
-    '/',
-    verifyJwt(
-        UserRole.CUSTOMER,
-        UserRole.WAITER,
-        UserRole.MANAGER,
-        UserRole.OWNER,
-    ),
+    '/customer-orders',
+    verifyJwt(UserRole.CUSTOMER),
     verifyTenantAccess,
-    validateRequest(orderStatusValidation.getUserOrdersSchema),
-    orderStatusController.getUserOrders,
+    validateRequest(orderStatusValidation.getCustomerOrdersSchema),
+    orderStatusController.getCustomerOrders,
+);
+
+router.get(
+    '/restaurant-orders/:restaurantId',
+    verifyJwt(UserRole.OWNER, UserRole.MANAGER, UserRole.WAITER, UserRole.CHEF),
+    verifyTenantAccess,
+    orderStatusController.getRestaurantOrders,
 );
 
 // Get order statistics by user ID
@@ -69,22 +72,6 @@ router.get(
     orderStatusController.trackOrder,
 );
 
-// Get orders by status and order type
-// GET /orders/status/:status?limit=10&page=1&orderType=DINE_IN
-router.get(
-    '/status/:status',
-    verifyJwt(
-        UserRole.CUSTOMER,
-        UserRole.WAITER,
-        UserRole.MANAGER,
-        UserRole.CHEF,
-        UserRole.OWNER,
-    ),
-    validateRequest(orderStatusValidation.getOrderByStatusAndOrderTypeSchema),
-    verifyTenantAccess,
-    orderStatusController.getOrderByStatusAndOrderType,
-);
-
 // Get single order by ID
 // GET /orders/:orderId
 router.get(
@@ -96,8 +83,8 @@ router.get(
         UserRole.CHEF,
         UserRole.OWNER,
     ),
-    validateRequest(orderStatusValidation.getOrderByIdSchema),
     verifyTenantAccess,
+    validateRequest(orderStatusValidation.getOrderByIdSchema),
     orderStatusController.getOrderById,
 );
 
@@ -111,8 +98,8 @@ router.put(
         UserRole.MANAGER,
         UserRole.CHEF,
     ),
-    validateRequest(orderStatusValidation.updateOrderStatusSchema),
     verifyTenantAccess,
+    validateRequest(orderStatusValidation.updateOrderStatusSchema),
     orderStatusController.updateOrderStatus,
 );
 
@@ -120,8 +107,8 @@ router.put(
 router.put(
     '/:orderId',
     verifyJwt(UserRole.CUSTOMER, UserRole.WAITER, UserRole.MANAGER),
-    validateRequest(orderStatusValidation.updateOrderSchema),
     verifyTenantAccess,
+    validateRequest(orderStatusValidation.updateOrderSchema),
     orderStatusController.updateOrder,
 );
 
@@ -135,8 +122,8 @@ router.patch(
         UserRole.MANAGER,
         UserRole.OWNER,
     ),
-    validateRequest(orderStatusValidation.deleteOrderSchema),
     verifyTenantAccess,
+    validateRequest(orderStatusValidation.deleteOrderSchema),
     orderStatusController.deleteOrder,
 );
 
@@ -145,8 +132,8 @@ router.patch(
 router.delete(
     '/:orderId/hard',
     verifyJwt(UserRole.MANAGER, UserRole.OWNER),
-    validateRequest(orderStatusValidation.deleteOrderSchema), // reuse existing — just needs orderId param
     verifyTenantAccess,
+    validateRequest(orderStatusValidation.deleteOrderSchema), // reuse existing — just needs orderId param
     orderStatusController.hardDeleteOrder,
 );
 

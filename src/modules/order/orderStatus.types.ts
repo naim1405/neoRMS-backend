@@ -43,20 +43,20 @@ export interface IOrder {
 
 // Create Order Request Body
 export interface ICreateOrderRequest {
+    customerId?: string;
     restaurantId: string;
+    orderType: OrderType;
+    paymentMethod: PaymentMethod;
+    totalPrice: number;
+    notes?: string;
+    tableId?: string; // optional, for DINE_IN
     items: Array<{
         menuItemId: string;
-        name: string;
+        variantId: string;
         quantity: number;
         price: number;
-        variantId?: string;
         notes?: string;
     }>;
-    totalPrice: number;
-    paymentMethod: 'CASH' | 'CARD' | 'MOBILE_PAYMENT' | 'ONLINE_PAYMENT';
-    notes?: string;
-    estimatedDeliveryTimeInMinutes?: number;
-    tableId?: string; // optional, for DINE_IN
 }
 
 // Update Order Request Body

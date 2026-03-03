@@ -1,4 +1,6 @@
-export interface PaginationQuery {
-    page: number;
-    limit: number;
-}
+export type IPaginationOptions = {
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+};

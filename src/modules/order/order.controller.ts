@@ -1,6 +1,6 @@
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/ApiResponse';
-import { orderStatusService } from './orderStatus.service';
+import { orderStatusService } from './order.service';
 import { JwtPayload } from '../../types/jwt.types';
 import pick from '../../utils/pick';
 import { paginationFields } from '../../const';

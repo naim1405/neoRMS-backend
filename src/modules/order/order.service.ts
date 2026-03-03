@@ -1,7 +1,7 @@
 import ApiError from '../../utils/ApiError';
 import httpStatus from 'http-status';
 import prisma from '../../utils/prisma';
-import { IUpdateOrderRequest, ICreateOrderRequest } from './orderStatus.types';
+import { IUpdateOrderRequest, ICreateOrderRequest } from './order.types';
 import { OrderStatus, Prisma, UserRole } from '@prisma/client';
 import { JwtPayload } from '../../types/jwt.types';
 import { IPaginationOptions } from '../../types/pagination.types';

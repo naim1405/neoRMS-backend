@@ -1,8 +1,8 @@
 import express from 'express';
-import { orderStatusController } from './orderStatus.controller';
+import { orderStatusController } from './order.controller';
 import { verifyJwt } from '../../middlewares/auth.middleware';
 import validateRequest from '../../middlewares/validateRequest';
-import { orderStatusValidation } from './orderStatus.validation';
+import { orderStatusValidation } from './order.validation';
 import { UserRole } from '@prisma/client';
 import { verifyTenantAccess } from '../../middlewares/tenant.middleware';
 

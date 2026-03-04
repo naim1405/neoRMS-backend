@@ -3,12 +3,12 @@ import { z } from 'zod';
 // Common date-range query used across all analytics routes
 const dateRangeQuerySchema = z.object({
     query: z.object({
-        startDate: z
-            .string()
-            .datetime({ message: 'startDate must be a valid ISO 8601 datetime' })
+        startDate: z.iso
+            .datetime({
+                message: 'startDate must be a valid ISO 8601 datetime',
+            })
             .optional(),
-        endDate: z
-            .string()
+        endDate: z.iso
             .datetime({ message: 'endDate must be a valid ISO 8601 datetime' })
             .optional(),
     }),

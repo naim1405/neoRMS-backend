@@ -18,7 +18,10 @@ const getAllInventoryIngredients = async () => {
 
 // ── RestaurantInventory ───────────────────────────────────────────────────────
 
-const getRestaurantInventory = async (restaurantId: string, tenantId: string) => {
+const getRestaurantInventory = async (
+    restaurantId: string,
+    tenantId: string,
+) => {
     await assertRestaurantExists(restaurantId, tenantId);
     return prisma.restaurantInventory.findMany({
         where: { restaurantId, tenantId, isDeleted: false },
@@ -56,7 +59,10 @@ const createRestaurantInventory = async (
             where: { id: ingredientId, isDeleted: false },
         });
         if (!ingredient) {
-            throw new ApiError(httpstatus.NOT_FOUND, 'Inventory ingredient not found');
+            throw new ApiError(
+                httpstatus.NOT_FOUND,
+                'Inventory ingredient not found',
+            );
         }
     }
 
@@ -93,7 +99,11 @@ const updateRestaurantInventory = async (
     payload: IUpdateRestaurantInventory,
     userId: string,
 ) => {
-    await assertInventoryEntryExists(restaurantInventoryId, restaurantId, tenantId);
+    await assertInventoryEntryExists(
+        restaurantInventoryId,
+        restaurantId,
+        tenantId,
+    );
 
     return prisma.restaurantInventory.update({
         where: { id: restaurantInventoryId },
@@ -108,7 +118,11 @@ const deleteRestaurantInventory = async (
     tenantId: string,
     userId: string,
 ) => {
-    await assertInventoryEntryExists(restaurantInventoryId, restaurantId, tenantId);
+    await assertInventoryEntryExists(
+        restaurantInventoryId,
+        restaurantId,
+        tenantId,
+    );
     await prisma.restaurantInventory.update({
         where: { id: restaurantInventoryId },
         data: { isDeleted: true, deletedBy: userId, lastUpdatedBy: userId },
@@ -122,11 +136,18 @@ const addQuantity = async (
     payload: IAdjustQuantity,
     userId: string,
 ) => {
-    const entry = await assertInventoryEntryExists(restaurantInventoryId, restaurantId, tenantId);
+    const entry = await assertInventoryEntryExists(
+        restaurantInventoryId,
+        restaurantId,
+        tenantId,
+    );
 
     return prisma.restaurantInventory.update({
         where: { id: restaurantInventoryId },
-        data: { availableQuantity: entry.availableQuantity + payload.amount, lastUpdatedBy: userId },
+        data: {
+            availableQuantity: entry.availableQuantity + payload.amount,
+            lastUpdatedBy: userId,
+        },
         include: { ingredient: true },
     });
 };
@@ -138,7 +159,11 @@ const subtractQuantity = async (
     payload: IAdjustQuantity,
     userId: string,
 ) => {
-    const entry = await assertInventoryEntryExists(restaurantInventoryId, restaurantId, tenantId);
+    const entry = await assertInventoryEntryExists(
+        restaurantInventoryId,
+        restaurantId,
+        tenantId,
+    );
 
     const newQuantity = entry.availableQuantity - payload.amount;
     if (newQuantity < 0) {
@@ -157,7 +182,10 @@ const subtractQuantity = async (
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const assertRestaurantExists = async (restaurantId: string, tenantId: string) => {
+const assertRestaurantExists = async (
+    restaurantId: string,
+    tenantId: string,
+) => {
     const restaurant = await prisma.restaurant.findFirst({
         where: { id: restaurantId, tenantId, isDeleted: false },
     });
@@ -173,7 +201,12 @@ const assertInventoryEntryExists = async (
     tenantId: string,
 ) => {
     const entry = await prisma.restaurantInventory.findFirst({
-        where: { id: restaurantInventoryId, restaurantId, tenantId, isDeleted: false },
+        where: {
+            id: restaurantInventoryId,
+            restaurantId,
+            tenantId,
+            isDeleted: false,
+        },
     });
     if (!entry) {
         throw new ApiError(

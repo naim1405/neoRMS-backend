@@ -11,6 +11,7 @@ import { orderRoutes } from '../modules/order/order.routes';
 import { restaurantRoutes } from '../modules/restaurant/restaurant.routes';
 import { userRoutes } from '../modules/user/user.routes';
 import { dummyRoutes } from '../modules/dummy/dummy.routes';
+import { tableRoutes } from '../modules/table/table.routes';
 
 const allRoutes = [
     {
@@ -44,6 +45,10 @@ const allRoutes = [
     {
         path: '/coupon',
         route: couponRoutes,
+    },
+    {
+        path: '/table',
+        route: tableRoutes,
     },
     {
         path: '/dummy',

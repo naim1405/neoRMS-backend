@@ -3,6 +3,8 @@ import sendResponse from '../../utils/ApiResponse';
 import catchAsync from '../../utils/catchAsync';
 import { restaurantService } from './restaurant.service';
 import { JwtPayload } from '../../types/jwt.types';
+import pick from '../../utils/pick';
+import { file } from 'bun';
 
 const createRestaurant = catchAsync(async (req, res) => {
     const result = await restaurantService.createRestaurant(
@@ -32,8 +34,10 @@ const updateRestaurant = catchAsync(async (req: any, res: any) => {
 });
 
 const getRestaurantById = catchAsync(async (req, res) => {
+    const filters = pick(req.query, ['includeMenu']);
     const result = await restaurantService.getRestaurantById(
         req.params.id as string,
+        filters,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,

@@ -802,7 +802,9 @@ const getRestaurantOrders = async (
         tenantId: tenantId,
         restaurantId: restaurantId,
     };
-    if (status) wheereConditions.status = status;
+
+    if (Array.isArray(status)) wheereConditions.status = { in: status };
+    else if (status) wheereConditions.status = status;
     if (orderType) wheereConditions.orderType = orderType;
     const [result, total] = await Promise.all([
         await prisma.order.findMany({

@@ -55,7 +55,11 @@ const updateRestaurant = async (
     return updated;
 };
 
-const getRestaurantById = async (id: string) => {
+const getRestaurantById = async (id: string, filters: any) => {
+    let { includeMenu = true } = filters;
+    if (includeMenu === 'false') {
+        includeMenu = false;
+    }
     const restaurant = await prisma.restaurant.findUnique({
         where: { id },
         select: {
@@ -67,7 +71,7 @@ const getRestaurantById = async (id: string) => {
             location: true,
             contactInfo: true,
             bannerImage: true,
-            menuProducts: true,
+            menuProducts: includeMenu,
             tables: true,
         },
     });

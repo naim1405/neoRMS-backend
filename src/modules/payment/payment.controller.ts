@@ -63,4 +63,21 @@ const paymentCancel = catchAsync(async (req, res) => {
     });
 });
 
-export const paymentController = { initPayment, postIPN, paymentSuccess, paymentFail, paymentCancel };
+const getTransactions = catchAsync(async (req, res) => {
+    const result = await paymentService.getTransactions((req as any).tenantId as string);
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Transactions fetched successfully',
+        data: result,
+    });
+});
+
+export const paymentController = {
+    initPayment,
+    postIPN,
+    paymentSuccess,
+    paymentFail,
+    paymentCancel,
+    getTransactions,
+};

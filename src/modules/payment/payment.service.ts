@@ -7,6 +7,7 @@ import ApiError from '../../utils/ApiError';
 import { JwtPayload } from '../../types/jwt.types';
 import { IInitPayment } from './payment.types';
 import config from '../../config';
+import { Currency, PaymentMethod, PaymentStatus } from '@prisma/client';
 
 const initPayment = async (payload: IInitPayment, user: JwtPayload) => {
     const order = await prisma.order.findUnique({
@@ -79,22 +80,67 @@ const initPayment = async (payload: IInitPayment, user: JwtPayload) => {
         throw new ApiError(httpstatus.BAD_GATEWAY, 'Failed to initialize payment gateway');
     }
 
+    // Upsert a pending Payment record (reset if a previous attempt existed)
+    await prisma.payment.upsert({
+        where: { orderId: order.id },
+        create: {
+            amount: order.totalPrice,
+            currency: Currency.BDT,
+            method: order.paymentMethod as PaymentMethod,
+            status: PaymentStatus.PENDING,
+            orderId: order.id,
+            customerId: order.customerId,
+            restaurantId: order.restaurantId,
+            tenantId: order.tenantId,
+        },
+        update: {
+            status: PaymentStatus.PENDING,
+            transactionId: null,
+            paidAt: null,
+            failureReason: null,
+            gatewayResponse: undefined,
+        },
+    });
+
     return { gatewayUrl };
 };
 
 const postIPN = async (ipnData: any) => {
-    // IPN acts as a fallback - same logic as success
+    const orderId = ipnData.tran_id as string;
+
     if (ipnData.status === 'VALID' || ipnData.status === 'VALIDATED') {
+        // Keep existing order status update + update Payment record
         await prisma.order.update({
-            where: { id: ipnData.tran_id },
+            where: { id: orderId },
             data: { paymentStatus: 'COMPLETED' },
         });
+
+        await prisma.payment.update({
+            where: { orderId },
+            data: {
+                status: PaymentStatus.COMPLETED,
+                transactionId: ipnData.val_id || ipnData.tran_id,
+                paidAt: new Date(),
+                gatewayResponse: ipnData,
+            },
+        });
     } else {
+        // Keep existing order status update + update Payment record
         await prisma.order.update({
-            where: { id: ipnData.tran_id },
+            where: { id: orderId },
             data: { paymentStatus: 'FAILED' },
         });
+
+        await prisma.payment.update({
+            where: { orderId },
+            data: {
+                status: PaymentStatus.FAILED,
+                failureReason: ipnData.error || ipnData.failedreason || 'Payment failed',
+                gatewayResponse: ipnData,
+            },
+        });
     }
+
     return { received: true };
 };
 
@@ -110,13 +156,23 @@ const paymentSuccess = async (body: any) => {
         config.sslcommerz.isLive,
     );
 
-    // Verify the payment is genuine — but let IPN own the DB write
+    // Verify the payment is genuine — but let IPN own the primary DB write
     const validationResponse = await sslcz.validate({ val_id: body.val_id });
     if (validationResponse.status !== 'VALID' && validationResponse.status !== 'VALIDATED') {
         throw new ApiError(httpstatus.BAD_REQUEST, 'Payment validation failed');
     }
 
-    // Just return current order state — IPN has already updated or will shortly
+    // Ensure Payment record reflects success (handles race with IPN)
+    await prisma.payment.update({
+        where: { orderId },
+        data: {
+            status: PaymentStatus.COMPLETED,
+            transactionId: body.val_id || body.tran_id,
+            paidAt: new Date(),
+            gatewayResponse: body,
+        },
+    });
+
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     return order;
 };
@@ -127,7 +183,15 @@ const paymentFail = async (body: any) => {
         throw new ApiError(httpstatus.BAD_REQUEST, 'Missing transaction ID');
     }
 
-    // IPN owns the DB write — just return current state
+    await prisma.payment.update({
+        where: { orderId },
+        data: {
+            status: PaymentStatus.FAILED,
+            failureReason: body.error || body.failedreason || 'Payment failed',
+            gatewayResponse: body,
+        },
+    });
+
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     return order;
 };
@@ -138,9 +202,57 @@ const paymentCancel = async (body: any) => {
         throw new ApiError(httpstatus.BAD_REQUEST, 'Missing transaction ID');
     }
 
-    // IPN owns the DB write — just return current state
+    await prisma.payment.update({
+        where: { orderId },
+        data: {
+            status: PaymentStatus.FAILED,
+            failureReason: 'Cancelled by customer',
+            gatewayResponse: body,
+        },
+    });
+
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     return order;
 };
 
-export const paymentService = { initPayment, postIPN, paymentSuccess, paymentFail, paymentCancel };
+const getTransactions = async (tenantId: string) => {
+    const payments = await prisma.payment.findMany({
+        where: { tenantId, isDeleted: false },
+        include: {
+            order: {
+                select: {
+                    id: true,
+                    status: true,
+                    orderType: true,
+                    totalPrice: true,
+                    paymentMethod: true,
+                    paymentStatus: true,
+                    notes: true,
+                    createdAt: true,
+                },
+            },
+            customer: {
+                include: {
+                    user: {
+                        select: { id: true, fullName: true, email: true, avatar: true },
+                    },
+                },
+            },
+            restaurant: {
+                select: { id: true, name: true, location: true },
+            },
+        },
+        orderBy: { createdAt: 'desc' },
+    });
+
+    return payments;
+};
+
+export const paymentService = {
+    initPayment,
+    postIPN,
+    paymentSuccess,
+    paymentFail,
+    paymentCancel,
+    getTransactions,
+};

@@ -1,6 +1,7 @@
 import express from 'express';
 import validateRequest from '../../middlewares/validateRequest';
 import { verifyJwt } from '../../middlewares/auth.middleware';
+import { verifyTenantAccess } from '../../middlewares/tenant.middleware';
 import { UserRole } from '@prisma/client';
 import { paymentValidation } from './payment.validation';
 import { paymentController } from './payment.controller';
@@ -22,5 +23,13 @@ router.post('/ipn', paymentController.postIPN);
 router.post('/success', paymentController.paymentSuccess);
 router.post('/fail', paymentController.paymentFail);
 router.post('/cancel', paymentController.paymentCancel);
+
+// Get all transactions — accessible to MANAGER and OWNER only
+router.get(
+    '/transactions',
+    verifyJwt(UserRole.MANAGER, UserRole.OWNER),
+    verifyTenantAccess,
+    paymentController.getTransactions,
+);
 
 export const paymentRoutes = router;

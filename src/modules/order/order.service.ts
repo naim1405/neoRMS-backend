@@ -164,12 +164,14 @@ const createOrder = async (
             },
         });
 
-        await tx.coupon.update({
-            where: { id: couponData?.coupon.id },
-            data: {
-                usedCount: { increment: 1 },
-            },
-        });
+        if (orderData.couponCode) {
+            await tx.coupon.update({
+                where: { id: couponData?.coupon.id },
+                data: {
+                    usedCount: { increment: 1 },
+                },
+            });
+        }
         return createdOrder;
     });
 

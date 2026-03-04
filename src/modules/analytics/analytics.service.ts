@@ -27,7 +27,10 @@ const buildDateFilter = ({ startDate, endDate }: IDateRange) => {
     };
 };
 
-const assertRestaurantExists = async (restaurantId: string, tenantId: string) => {
+const assertRestaurantExists = async (
+    restaurantId: string,
+    tenantId: string,
+) => {
     const restaurant = await prisma.restaurant.findFirst({
         where: { id: restaurantId, tenantId, isDeleted: false },
     });
@@ -50,7 +53,14 @@ const getDashboardAnalytics = async (
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const endOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+    );
 
     // All-time and this-month orders for the restaurant via OrderItems
     const [allOrders, thisMonthOrders] = await Promise.all([
@@ -83,21 +93,35 @@ const getDashboardAnalytics = async (
 
     const totalOrderCount: number = allOrders.length;
     const thisMonthOrderCount: number = thisMonthOrders.length;
-    const averageOrderValue = totalOrderCount > 0 ? totalRevenue / totalOrderCount : 0;
+    const averageOrderValue =
+        totalOrderCount > 0 ? totalRevenue / totalOrderCount : 0;
 
     // Unique customers
-    const uniqueCustomerIds = new Set<string>(allOrders.map((o: any) => o.userId));
-    const customerOrderCounts = allOrders.reduce((acc: Record<string, number>, o: any) => {
-        acc[o.userId] = (acc[o.userId] || 0) + 1;
-        return acc;
-    }, {});
-    const repeatCustomers = Object.values(customerOrderCounts).filter((c) => (c as number) > 1).length;
+    const uniqueCustomerIds = new Set<string>(
+        allOrders.map((o: any) => o.userId),
+    );
+    const customerOrderCounts = allOrders.reduce(
+        (acc: Record<string, number>, o: any) => {
+            acc[o.userId] = (acc[o.userId] || 0) + 1;
+            return acc;
+        },
+        {},
+    );
+    const repeatCustomers = Object.values(customerOrderCounts).filter(
+        c => (c as number) > 1,
+    ).length;
 
     // Staff by role
     const [chefCount, waiterCount, managerCount] = await Promise.all([
-        prisma.chef.count({ where: { restaurantId, tenantId, isDeleted: false } }),
-        prisma.waiter.count({ where: { restaurantId, tenantId, isDeleted: false } }),
-        prisma.manager.count({ where: { restaurantId, tenantId, isDeleted: false } }),
+        prisma.chef.count({
+            where: { restaurantId, tenantId, isDeleted: false },
+        }),
+        prisma.waiter.count({
+            where: { restaurantId, tenantId, isDeleted: false },
+        }),
+        prisma.manager.count({
+            where: { restaurantId, tenantId, isDeleted: false },
+        }),
     ]);
     const staffByRole: Record<string, number> = {
         CHEF: chefCount,
@@ -108,11 +132,16 @@ const getDashboardAnalytics = async (
     // Low stock count — Prisma doesn't support column-to-column comparisons,
     // so we fetch and filter in memory
     const allInventory = await prisma.restaurantInventory.findMany({
-        where: { restaurantId, tenantId, thresholdQuantity: { gt: 0 }, isDeleted: false },
+        where: {
+            restaurantId,
+            tenantId,
+            thresholdQuantity: { gt: 0 },
+            isDeleted: false,
+        },
         select: { availableQuantity: true, thresholdQuantity: true },
     });
     const lowStockAlertCount = allInventory.filter(
-        (inv) => inv.availableQuantity <= inv.thresholdQuantity,
+        inv => inv.availableQuantity <= inv.thresholdQuantity,
     ).length;
 
     return {
@@ -178,14 +207,20 @@ const getOrdersAnalytics = async (
         .filter((t: any) => t !== null && t !== undefined);
     const averageEstimatedDeliveryTime =
         deliveryTimes.length > 0
-            ? deliveryTimes.reduce((a: number, b: number) => a + b, 0) / deliveryTimes.length
+            ? deliveryTimes.reduce((a: number, b: number) => a + b, 0) /
+              deliveryTimes.length
             : null;
 
     // Fulfillment rate
-    const delivered = orders.filter((o: any) => o.status === 'DELIVERED').length;
-    const cancelled = orders.filter((o: any) => o.status === 'CANCELLED').length;
+    const delivered = orders.filter(
+        (o: any) => o.status === 'DELIVERED',
+    ).length;
+    const cancelled = orders.filter(
+        (o: any) => o.status === 'CANCELLED',
+    ).length;
     const relevantTotal = delivered + cancelled;
-    const fulfillmentRate = relevantTotal > 0 ? (delivered / relevantTotal) * 100 : 0;
+    const fulfillmentRate =
+        relevantTotal > 0 ? (delivered / relevantTotal) * 100 : 0;
 
     // Revenue by payment method
     const paymentMap: Record<string, { total: number; count: number }> = {};
@@ -193,15 +228,18 @@ const getOrdersAnalytics = async (
         .filter((o: any) => o.status === 'DELIVERED')
         .forEach((o: any) => {
             const method = o.paymentMethod || 'UNKNOWN';
-            if (!paymentMap[method]) paymentMap[method] = { total: 0, count: 0 };
+            if (!paymentMap[method])
+                paymentMap[method] = { total: 0, count: 0 };
             paymentMap[method].total += o.totalPrice;
             paymentMap[method].count += 1;
         });
-    const revenueByPaymentMethod = Object.entries(paymentMap).map(([paymentMethod, val]) => ({
-        paymentMethod,
-        total: val.total,
-        count: val.count,
-    }));
+    const revenueByPaymentMethod = Object.entries(paymentMap).map(
+        ([paymentMethod, val]) => ({
+            paymentMethod,
+            total: val.total,
+            count: val.count,
+        }),
+    );
 
     return {
         byStatus,
@@ -261,10 +299,12 @@ const getMenuAnalytics = async (
         productMap[item.menuItemId].totalRevenue += item.price * item.quantity;
     });
 
-    const productList = Object.entries(productMap).map(([menuProductId, val]) => ({
-        menuProductId,
-        ...val,
-    }));
+    const productList = Object.entries(productMap).map(
+        ([menuProductId, val]) => ({
+            menuProductId,
+            ...val,
+        }),
+    );
 
     const bestSellingItems = [...productList]
         .sort((a, b) => b.totalQuantitySold - a.totalQuantitySold)
@@ -275,17 +315,23 @@ const getMenuAnalytics = async (
         .slice(0, 10);
 
     // Category breakdown
-    const categoryMap: Record<string, { totalQuantitySold: number; totalRevenue: number }> = {};
+    const categoryMap: Record<
+        string,
+        { totalQuantitySold: number; totalRevenue: number }
+    > = {};
     orderItems.forEach((item: any) => {
         const cat = item.menuItem?.category || 'UNKNOWN';
-        if (!categoryMap[cat]) categoryMap[cat] = { totalQuantitySold: 0, totalRevenue: 0 };
+        if (!categoryMap[cat])
+            categoryMap[cat] = { totalQuantitySold: 0, totalRevenue: 0 };
         categoryMap[cat].totalQuantitySold += item.quantity;
         categoryMap[cat].totalRevenue += item.price * item.quantity;
     });
-    const categoryBreakdown = Object.entries(categoryMap).map(([category, val]) => ({
-        category,
-        ...val,
-    }));
+    const categoryBreakdown = Object.entries(categoryMap).map(
+        ([category, val]) => ({
+            category,
+            ...val,
+        }),
+    );
 
     // Products by status
     const menuProducts = await prisma.menuProduct.findMany({
@@ -296,10 +342,12 @@ const getMenuAnalytics = async (
     menuProducts.forEach(({ status }) => {
         statusMap[status] = (statusMap[status] || 0) + 1;
     });
-    const productsByStatus = Object.entries(statusMap).map(([status, count]) => ({
-        status,
-        count,
-    }));
+    const productsByStatus = Object.entries(statusMap).map(
+        ([status, count]) => ({
+            status,
+            count,
+        }),
+    );
 
     // Dietary tag breakdown (from menu products, not orders)
     const allMenuProducts = await prisma.menuProduct.findMany({
@@ -308,7 +356,7 @@ const getMenuAnalytics = async (
     });
     const tagMap: Record<string, number> = {};
     allMenuProducts.forEach(({ dietaryTags }) => {
-        dietaryTags.forEach((tag) => {
+        dietaryTags.forEach(tag => {
             tagMap[tag] = (tagMap[tag] || 0) + 1;
         });
     });
@@ -319,7 +367,12 @@ const getMenuAnalytics = async (
 
     // Top rated products
     const ratedProducts = await prisma.menuProduct.findMany({
-        where: { restaurantId, tenantId, userRating: { not: null }, isDeleted: false },
+        where: {
+            restaurantId,
+            tenantId,
+            userRating: { not: null },
+            isDeleted: false,
+        },
         select: {
             id: true,
             productTitle: true,
@@ -330,7 +383,7 @@ const getMenuAnalytics = async (
         orderBy: { userRating: 'desc' },
         take: 10,
     });
-    const topRatedProducts = ratedProducts.map((p) => ({
+    const topRatedProducts = ratedProducts.map(p => ({
         id: p.id,
         productTitle: p.productTitle,
         userRating: p.userRating,
@@ -343,15 +396,23 @@ const getMenuAnalytics = async (
         where: { menuProduct: { restaurantId } },
         select: { rating: true },
     });
-    const ratingBuckets: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    const ratingBuckets: Record<number, number> = {
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0,
+        5: 0,
+    };
     reviews.forEach(({ rating }) => {
         const star = Math.round(rating);
         if (star >= 1 && star <= 5) ratingBuckets[star] += 1;
     });
-    const ratingDistribution = Object.entries(ratingBuckets).map(([star, count]) => ({
-        star: Number(star),
-        count,
-    }));
+    const ratingDistribution = Object.entries(ratingBuckets).map(
+        ([star, count]) => ({
+            star: Number(star),
+            count,
+        }),
+    );
 
     return {
         bestSellingItems,
@@ -366,7 +427,10 @@ const getMenuAnalytics = async (
 
 // ── Inventory ─────────────────────────────────────────────────────────────────
 
-const getInventoryAnalytics = async (restaurantId: string, tenantId: string): Promise<IInventoryAnalytics> => {
+const getInventoryAnalytics = async (
+    restaurantId: string,
+    tenantId: string,
+): Promise<IInventoryAnalytics> => {
     await assertRestaurantExists(restaurantId, tenantId);
 
     const inventory = await prisma.restaurantInventory.findMany({
@@ -378,11 +442,11 @@ const getInventoryAnalytics = async (restaurantId: string, tenantId: string): Pr
 
     const lowStockItems = inventory
         .filter(
-            (inv) =>
+            inv =>
                 inv.thresholdQuantity !== null &&
                 inv.availableQuantity <= inv.thresholdQuantity!,
         )
-        .map((inv) => ({
+        .map(inv => ({
             id: inv.id,
             ingredientName: inv.ingredient.name,
             unit: inv.ingredient.unit,
@@ -393,21 +457,24 @@ const getInventoryAnalytics = async (restaurantId: string, tenantId: string): Pr
     // Most-used ingredients (by number of menu products they appear in)
     const ingredientUsage = await prisma.menuProductIngredient.groupBy({
         by: ['ingredientId'],
-        where: { menuProduct: { restaurantId, tenantId, isDeleted: false }, isDeleted: false },
+        where: {
+            menuProduct: { restaurantId, tenantId, isDeleted: false },
+            isDeleted: false,
+        },
         _count: { menuProductId: true },
         orderBy: { _count: { menuProductId: 'desc' } },
         take: 10,
     });
 
-    const ingredientIds = ingredientUsage.map((u) => u.ingredientId);
+    const ingredientIds = ingredientUsage.map(u => u.ingredientId);
     const ingredients = await prisma.inventoryIngredient.findMany({
         where: { id: { in: ingredientIds } },
         select: { id: true, name: true },
     });
     const ingredientNameMap: Record<string, string> = {};
-    ingredients.forEach((ing) => (ingredientNameMap[ing.id] = ing.name));
+    ingredients.forEach(ing => (ingredientNameMap[ing.id] = ing.name));
 
-    const mostUsedIngredients = ingredientUsage.map((u) => ({
+    const mostUsedIngredients = ingredientUsage.map(u => ({
         ingredientName: ingredientNameMap[u.ingredientId] || u.ingredientId,
         usedInProducts: u._count.menuProductId,
     }));
@@ -440,7 +507,7 @@ const getRestaurantsAnalytics = async (
     }
 
     const restaurantList = await Promise.all(
-        owner.restaurants.map(async (restaurant) => {
+        owner.restaurants.map(async restaurant => {
             const restaurantId = restaurant.id;
 
             // Revenue + orders
@@ -465,19 +532,29 @@ const getRestaurantsAnalytics = async (
 
             // Staff count
             const [chefCount, waiterCount, managerCount] = await Promise.all([
-                prisma.chef.count({ where: { restaurantId, isDeleted: false } }),
-                prisma.waiter.count({ where: { restaurantId, isDeleted: false } }),
-                prisma.manager.count({ where: { restaurantId, isDeleted: false } }),
+                prisma.chef.count({
+                    where: { restaurantId, isDeleted: false },
+                }),
+                prisma.waiter.count({
+                    where: { restaurantId, isDeleted: false },
+                }),
+                prisma.manager.count({
+                    where: { restaurantId, isDeleted: false },
+                }),
             ]);
             const staffCount = chefCount + waiterCount + managerCount;
 
             // Low stock count
             const inventory = await prisma.restaurantInventory.findMany({
-                where: { restaurantId, isDeleted: false, thresholdQuantity: { gt: 0 } },
+                where: {
+                    restaurantId,
+                    isDeleted: false,
+                    thresholdQuantity: { gt: 0 },
+                },
                 select: { availableQuantity: true, thresholdQuantity: true },
             });
             const lowStockCount = inventory.filter(
-                (inv) => inv.availableQuantity <= inv.thresholdQuantity,
+                inv => inv.availableQuantity <= inv.thresholdQuantity,
             ).length;
 
             return {
@@ -492,7 +569,9 @@ const getRestaurantsAnalytics = async (
         }),
     );
 
-    const sorted = [...restaurantList].sort((a, b) => b.totalRevenue - a.totalRevenue);
+    const sorted = [...restaurantList].sort(
+        (a, b) => b.totalRevenue - a.totalRevenue,
+    );
     const bestPerforming = sorted[0] ?? null;
     const worstPerforming = sorted[sorted.length - 1] ?? null;
 
@@ -519,7 +598,7 @@ const getSummaryAnalytics = async (
             where: { userId },
             select: { restaurants: { select: { id: true } } },
         });
-        restaurantIds = owner?.restaurants.map((r) => r.id) ?? [];
+        restaurantIds = owner?.restaurants.map(r => r.id) ?? [];
     }
 
     if (restaurantIds.length === 0) {
@@ -536,7 +615,9 @@ const getSummaryAnalytics = async (
     // Revenue + order count
     const allOrders = await db.order.findMany({
         where: {
-            items: { some: { menuItem: { restaurantId: { in: restaurantIds } } } },
+            items: {
+                some: { menuItem: { restaurantId: { in: restaurantIds } } },
+            },
             status: 'DELIVERED',
             ...(dateFilter && { createdAt: dateFilter }),
         },
@@ -561,10 +642,12 @@ const getSummaryAnalytics = async (
     });
     const productQtyMap: Record<string, number> = {};
     orderItems.forEach((item: any) => {
-        productQtyMap[item.name] = (productQtyMap[item.name] || 0) + item.quantity;
+        productQtyMap[item.name] =
+            (productQtyMap[item.name] || 0) + item.quantity;
     });
     const topProduct =
-        Object.entries(productQtyMap).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+        Object.entries(productQtyMap).sort((a, b) => b[1] - a[1])[0]?.[0] ??
+        null;
 
     // Low stock count
     const allInventory = await prisma.restaurantInventory.findMany({
@@ -577,15 +660,34 @@ const getSummaryAnalytics = async (
         select: { availableQuantity: true, thresholdQuantity: true },
     });
     const lowStockCount = allInventory.filter(
-        (inv) => inv.availableQuantity <= inv.thresholdQuantity,
+        inv => inv.availableQuantity <= inv.thresholdQuantity,
     ).length;
 
     // Total staff
-    const [chefCountTotal, waiterCountTotal, managerCountTotal] = await Promise.all([
-        prisma.chef.count({ where: { restaurantId: { in: restaurantIds }, tenantId, isDeleted: false } }),
-        prisma.waiter.count({ where: { restaurantId: { in: restaurantIds }, tenantId, isDeleted: false } }),
-        prisma.manager.count({ where: { restaurantId: { in: restaurantIds }, tenantId, isDeleted: false } }),
-    ]);
+    const [chefCountTotal, waiterCountTotal, managerCountTotal] =
+        await Promise.all([
+            prisma.chef.count({
+                where: {
+                    restaurantId: { in: restaurantIds },
+                    tenantId,
+                    isDeleted: false,
+                },
+            }),
+            prisma.waiter.count({
+                where: {
+                    restaurantId: { in: restaurantIds },
+                    tenantId,
+                    isDeleted: false,
+                },
+            }),
+            prisma.manager.count({
+                where: {
+                    restaurantId: { in: restaurantIds },
+                    tenantId,
+                    isDeleted: false,
+                },
+            }),
+        ]);
     const totalStaff = chefCountTotal + waiterCountTotal + managerCountTotal;
 
     return {

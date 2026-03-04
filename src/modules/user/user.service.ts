@@ -220,7 +220,7 @@ const getMyProfile = async (userId: string) => {
                 },
             },
             Chef: {
-                select: {
+                include: {
                     restaurant: {
                         select: {
                             id: true,
@@ -232,7 +232,7 @@ const getMyProfile = async (userId: string) => {
                 },
             },
             Waiter: {
-                select: {
+                include: {
                     restaurant: {
                         select: {
                             id: true,
@@ -244,7 +244,7 @@ const getMyProfile = async (userId: string) => {
                 },
             },
             Manager: {
-                select: {
+                include: {
                     restaurant: {
                         select: {
                             id: true,

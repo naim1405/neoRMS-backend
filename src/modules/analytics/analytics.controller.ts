@@ -35,7 +35,11 @@ const getDashboard = catchAsync(async (req: any, res) => {
     const { restaurantId } = req.params;
     const dateRange = parseDateRange(req.query);
 
-    const result = await analyticsService.getDashboardAnalytics(restaurantId, req.tenantId, dateRange);
+    const result = await analyticsService.getDashboardAnalytics(
+        restaurantId,
+        req.tenantId,
+        dateRange,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -50,7 +54,11 @@ const getOrders = catchAsync(async (req: any, res) => {
     const { restaurantId } = req.params;
     const dateRange = parseDateRange(req.query);
 
-    const result = await analyticsService.getOrdersAnalytics(restaurantId, req.tenantId, dateRange);
+    const result = await analyticsService.getOrdersAnalytics(
+        restaurantId,
+        req.tenantId,
+        dateRange,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -65,7 +73,11 @@ const getMenu = catchAsync(async (req: any, res) => {
     const { restaurantId } = req.params;
     const dateRange = parseDateRange(req.query);
 
-    const result = await analyticsService.getMenuAnalytics(restaurantId, req.tenantId, dateRange);
+    const result = await analyticsService.getMenuAnalytics(
+        restaurantId,
+        req.tenantId,
+        dateRange,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -79,7 +91,10 @@ const getMenu = catchAsync(async (req: any, res) => {
 const getInventory = catchAsync(async (req: any, res) => {
     const { restaurantId } = req.params;
 
-    const result = await analyticsService.getInventoryAnalytics(restaurantId, req.tenantId);
+    const result = await analyticsService.getInventoryAnalytics(
+        restaurantId,
+        req.tenantId,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.OK,
@@ -93,7 +108,11 @@ const getInventory = catchAsync(async (req: any, res) => {
 const getRestaurants = catchAsync(async (req: any, res) => {
     const dateRange = parseDateRange(req.query);
 
-    const result = await analyticsService.getRestaurantsAnalytics(req.user.id, req.tenantId, dateRange);
+    const result = await analyticsService.getRestaurantsAnalytics(
+        req.user.id,
+        req.tenantId,
+        dateRange,
+    );
 
     sendResponse(res, {
         statusCode: httpstatus.OK,

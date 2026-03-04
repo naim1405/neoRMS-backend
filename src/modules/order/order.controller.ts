@@ -1,21 +1,23 @@
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/ApiResponse';
-import { orderStatusService } from './orderStatus.service';
+import { orderStatusService } from './order.service';
 import { JwtPayload } from '../../types/jwt.types';
+import pick from '../../utils/pick';
+import { paginationFields } from '../../const';
+import httpStatus from 'http-status';
 
-// Get order history for the requesting user (paginated)
-const getUserOrders = catchAsync(async (req: any, res) => {
+// Get order history for the requesting customer (paginated)
+const getCustomerOrders = catchAsync(async (req: any, res) => {
     const user = req.user as JwtPayload;
     const tenantId = req.tenantId as string;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const page = parseInt(req.query.page as string) || 1;
-    const status = req.query.status as any;
-    const orderType = req.query.orderType as any;
+    const options = pick(req.query, paginationFields);
+    const filters = pick(req.query, ['status', 'orderType']);
 
-    const result = await orderStatusService.getUserOrders(
+    const result = await orderStatusService.getCustomerOrders(
         user,
         tenantId,
-        { status, orderType, limit, page },
+        filters,
+        options,
     );
 
     sendResponse(res, {
@@ -27,11 +29,32 @@ const getUserOrders = catchAsync(async (req: any, res) => {
     });
 });
 
+const getRestaurantOrders = catchAsync(async (req: any, res) => {
+    const tenantId = req.tenantId as string;
+    const { restaurantId } = req.params;
+    const options = pick(req.query, paginationFields);
+    const filters = pick(req.query, ['status', 'orderType']);
+    const result = await orderStatusService.getRestaurantOrders(
+        tenantId,
+        restaurantId,
+        filters,
+        options,
+    );
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'Restaurant Orders retrieved successfully',
+        meta: result.meta,
+        data: result.data,
+    });
+});
+
 // Create new order
 const createOrder = catchAsync(async (req: any, res) => {
     const creator = req.user as JwtPayload;
     const orderData = req.body;
-    const tenantId = req.tenantId as string; // set by verifyTenantAccess from x-tenant-id header
+    const tenantId = req.tenantId as string;
 
     const result = await orderStatusService.createOrder(
         creator,
@@ -100,36 +123,6 @@ const getOrderById = catchAsync(async (req: any, res) => {
         success: true,
         message: 'Order retrieved successfully',
         data: result,
-    });
-});
-
-// Get orders by status and order type
-// GET /orders/status/:status?limit=10&page=1&orderType=DINE_IN
-const getOrderByStatusAndOrderType = catchAsync(async (req: any, res) => {
-    const user = req.user as JwtPayload;
-    const tenantId = req.tenantId as string;
-
-    const { status } = req.params;
-
-    const limit = parseInt(req.query.limit as string) || 10;
-    const page = parseInt(req.query.page as string) || 1;
-    const orderType = req.query.orderType as any;
-
-    const result = await orderStatusService.getOrderByStatusAndOrderType(
-        user,
-        tenantId,
-        status as any,
-        limit,
-        page,
-        orderType,
-    );
-
-    sendResponse(res, {
-        statusCode: 200,
-        success: true,
-        message: 'Orders retrieved successfully',
-        meta: result.meta,
-        data: result.data,
     });
 });
 
@@ -217,6 +210,6 @@ export const orderStatusController = {
     deleteOrder,
     createOrder,
     hardDeleteOrder,
-    getOrderByStatusAndOrderType,
-    getUserOrders,
+    getCustomerOrders,
+    getRestaurantOrders,
 };

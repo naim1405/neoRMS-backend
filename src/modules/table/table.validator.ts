@@ -10,13 +10,13 @@ const createTableSchema = z.object({
         capacity: z.number().int().positive().optional(),
     }),
     params: z.object({
-        restaurantId: z.string().uuid('Invalid restaurant ID'),
+        restaurantId: z.uuid('Invalid restaurant ID'),
     }),
 });
 
 const getTablesSchema = z.object({
     params: z.object({
-        restaurantId: z.string().uuid('Invalid restaurant ID'),
+        restaurantId: z.uuid('Invalid restaurant ID'),
     }),
 });
 
@@ -26,15 +26,15 @@ const updateTableSchema = z.object({
         capacity: z.number().int().positive().optional(),
     }),
     params: z.object({
-        restaurantId: z.string().uuid('Invalid restaurant ID'),
-        tableId: z.string().uuid('Invalid table ID'),
+        restaurantId: z.uuid('Invalid restaurant ID'),
+        tableId: z.uuid('Invalid table ID'),
     }),
 });
 
 const deleteTableSchema = z.object({
     params: z.object({
-        restaurantId: z.string().uuid('Invalid restaurant ID'),
-        tableId: z.string().uuid('Invalid table ID'),
+        restaurantId: z.uuid('Invalid restaurant ID'),
+        tableId: z.uuid('Invalid table ID'),
     }),
 });
 
@@ -47,7 +47,7 @@ const createReservationSchema = z.object({
         contactPhone: z.string().optional(),
     }),
     params: z.object({
-        tableId: z.string().uuid('Invalid table ID'),
+        tableId: z.uuid('Invalid table ID'),
     }),
 });
 
@@ -68,7 +68,7 @@ const updateReservationDetailsSchema = z.object({
         contactPhone: z.string().optional(),
     }),
     params: z.object({
-        reservationId: z.string().uuid('Invalid reservation ID'),
+        reservationId: z.uuid('Invalid reservation ID'),
     }),
 });
 

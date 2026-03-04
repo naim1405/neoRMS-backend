@@ -71,13 +71,4 @@ router.patch(
 
 // DYNAMIC ROUTES
 
-// PATCH /table/:reservationId - Update table state (WAITER, MANAGER)
-router.patch(
-    '/:reservationId',
-    verifyJwt(UserRole.WAITER, UserRole.MANAGER),
-    verifyTenantAccess,
-    validateRequest(tableValidator.updateReservationStatusSchema),
-    tableController.updateReservationStatus,
-);
-
 export const tableRoutes = router;

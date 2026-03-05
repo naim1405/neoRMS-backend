@@ -49,7 +49,32 @@ async function review_analyzer(data: string[]) {
     }
 }
 
+async function recommendationEngine(data: string): Promise<string | null> {
+    try {
+        const re = await fetch(`${aiServiceUrl}/recommend`, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+
+            method: 'POST',
+            body: JSON.stringify({}),
+        });
+        const resJson = await re.json();
+
+        if (!resJson.success) {
+            throw new Error(
+                `AI service error: ${resJson.error || 'Unknown error'}`,
+            );
+        }
+        return resJson.data.sentiment_name as string;
+    } catch (e) {
+        console.error('Error in sentiment analysis:', e);
+        return null;
+    }
+}
+
 export const aiService = {
     sentimentAnalysis,
     review_analyzer,
+    recommendationEngine,
 };

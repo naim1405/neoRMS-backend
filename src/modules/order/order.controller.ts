@@ -177,7 +177,7 @@ const updateOrderStatus = catchAsync(async (req: any, res) => {
             WaiterSocketEventEnum.ORDER_CONFIRMATION_EVENT,
             {
                 orderId: result.id,
-                confirmedBy: user.id,
+                waiterId: user.id,
             },
         );
 
@@ -200,7 +200,7 @@ const updateOrderStatus = catchAsync(async (req: any, res) => {
             ChefSocketEventEnum.ORDER_IN_PROGRESS_EVENT,
             {
                 orderId: result.id,
-                preparingBy: user.id,
+                chefId: user.id,
             },
         );
 

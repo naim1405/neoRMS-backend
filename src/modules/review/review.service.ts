@@ -129,7 +129,9 @@ const createReview = async (
         );
     }
 
-    // TODO: add sentiment
+    const sentiment = payload.comment
+        ? await aiService.sentimentAnalysis(payload.comment)
+        : null;
 
     if (existingReview && existingReview.isDeleted) {
         const updated = await prisma.review.update({
@@ -137,6 +139,7 @@ const createReview = async (
             data: {
                 rating: payload.rating,
                 comment: payload.comment,
+                sentiment,
                 isDeleted: false,
                 deletedBy: null,
                 lastUpdatedBy: user.id,
@@ -153,6 +156,7 @@ const createReview = async (
                 menuProductId: payload.menuProductId,
                 rating: payload.rating,
                 comment: payload.comment,
+                sentiment,
                 lastUpdatedBy: user.id,
             },
             select: { id: true },

@@ -47,10 +47,8 @@ const deleteMenuProduct = catchAsync(async (req: any, res) => {
 });
 
 const getMenuProductsByRestaurant = catchAsync(async (req, res) => {
-    const { customerId = null } = req.query;
     const result = await menuProductService.getMenuProductsByRestaurant(
         req.params.restaurantId as string,
-        customerId as string | null,
     );
     sendResponse(res, {
         statusCode: httpstatus.OK,

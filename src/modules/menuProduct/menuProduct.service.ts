@@ -75,43 +75,12 @@ const deleteMenuProduct = async (
     await prisma.menuProduct.delete({ where: { id: menuProductId } });
 };
 
-const getMenuProductsByRestaurant = async (
-    restaurantId: string,
-    customerId: string | null,
-) => {
+const getMenuProductsByRestaurant = async (restaurantId: string) => {
     const restaurant = await prisma.restaurant.findUnique({
         where: { id: restaurantId, isDeleted: false },
     });
     if (!restaurant) {
         throw new ApiError(httpstatus.NOT_FOUND, 'Restaurant not found');
-    }
-
-    if (customerId) {
-        //TODO: get reccomendation
-        const previousOrders = await prisma.order.findMany({
-            where: {
-                customerId: customerId,
-                restaurantId: restaurantId,
-            },
-            select: {
-                id: true,
-                items: {
-                    select: {
-                        menuItemId: true,
-                    },
-                },
-            },
-        });
-
-        const result = previousOrders.reduce<Record<string, string[]>>(
-            (acc, { id, items }) => {
-                acc[id] = items.map(item => item.menuItemId);
-                return acc;
-            },
-            {},
-        );
-
-        console.log('🚀 result : ', result);
     }
 
     const menuProducts = await prisma.menuProduct.findMany({

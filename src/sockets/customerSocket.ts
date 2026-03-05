@@ -17,8 +17,8 @@ export const setupCustomerSocketNamespace = (io: Server) => {
             'user:',
             socket.user?.id,
         );
-        const room = socket.data.tenantId;
-        socket.join(room); // Join a room based on the tenant ID for targeted messaging
+        const room = socket.user.id;
+        socket.join(room); // Join a room based on the customer ID for targeted messaging
         socket.emit('connected', {
             message: 'Welcome to the customer socket namespace!',
         });

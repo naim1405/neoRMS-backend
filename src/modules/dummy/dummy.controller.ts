@@ -105,7 +105,7 @@ const waiterConfirmOrder = catchAsync(async (req, res) => {
         req,
         SOCKET_NAMESPACES.CHEF,
         restaurantId,
-        ChefSocketEventEnum.ORDER_PLACED_EVENT,
+        ChefSocketEventEnum.ORDER_CONFIRMED_EVENT,
         {
             orderId: '123',
             message: 'Order confirmed. You can start working on it now.',

@@ -5,6 +5,13 @@ import { JwtPayload } from '../../types/jwt.types';
 import pick from '../../utils/pick';
 import { paginationFields } from '../../const';
 import httpStatus from 'http-status';
+import { emitSocketEvent, SOCKET_NAMESPACES } from '../../sockets';
+import {
+    ChefSocketEventEnum,
+    CustomerSocketEventEnum,
+    WaiterSocketEventEnum,
+} from '../../sockets/socket.types';
+import { OrderStatus } from '@prisma/client';
 
 // Get order history for the requesting customer (paginated)
 const getCustomerOrders = catchAsync(async (req: any, res) => {
@@ -60,6 +67,16 @@ const createOrder = catchAsync(async (req: any, res) => {
         creator,
         orderData,
         tenantId,
+    );
+
+    emitSocketEvent(
+        req,
+        SOCKET_NAMESPACES.WAITER,
+        tenantId,
+        WaiterSocketEventEnum.ORDER_PLACED_EVENT,
+        {
+            orderId: result.id,
+        },
     );
 
     sendResponse(res, {
@@ -139,6 +156,153 @@ const updateOrderStatus = catchAsync(async (req: any, res) => {
         status,
         tenantId,
     );
+
+    if (status === OrderStatus.CONFIRMED) {
+        //emit chef socket event
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.CHEF,
+            tenantId,
+            ChefSocketEventEnum.ORDER_CONFIRMED_EVENT,
+            {
+                orderId: result.id,
+            },
+        );
+
+        // notify other waiters about the confirmed order
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.WAITER,
+            tenantId,
+            WaiterSocketEventEnum.ORDER_CONFIRMATION_EVENT,
+            {
+                orderId: result.id,
+                confirmedBy: user.id,
+            },
+        );
+
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.CUSTOMER,
+            result.customerId,
+            CustomerSocketEventEnum.ORDER_STATUS_UPDATED_EVENT,
+            {
+                orderId: result.id,
+                status: result.status,
+            },
+        );
+    } else if (status === OrderStatus.PREPARING) {
+        // emit chef socket event
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.CHEF,
+            tenantId,
+            ChefSocketEventEnum.ORDER_IN_PROGRESS_EVENT,
+            {
+                orderId: result.id,
+                preparingBy: user.id,
+            },
+        );
+
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.CUSTOMER,
+            result.customerId,
+            CustomerSocketEventEnum.ORDER_STATUS_UPDATED_EVENT,
+            {
+                orderId: result.id,
+                status: result.status,
+            },
+        );
+    } else if (status === OrderStatus.READY) {
+        //emit waiter socket event
+        //
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.WAITER,
+            tenantId,
+            WaiterSocketEventEnum.ORDER_READY_EVENT,
+            {
+                orderId: result.id,
+            },
+        );
+
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.CUSTOMER,
+            result.customerId,
+            CustomerSocketEventEnum.ORDER_STATUS_UPDATED_EVENT,
+            {
+                orderId: result.id,
+                status: result.status,
+            },
+        );
+    } else if (status === OrderStatus.DELIVERED) {
+        // emit chef and waiter socket event
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.CHEF,
+            tenantId,
+            ChefSocketEventEnum.ORDER_DELIVERED_EVENT,
+            {
+                orderId: result.id,
+            },
+        );
+
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.WAITER,
+            tenantId,
+            WaiterSocketEventEnum.ORDER_DELIVERED_EVENT,
+            {
+                orderId: result.id,
+            },
+        );
+
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.CUSTOMER,
+            result.customerId,
+            CustomerSocketEventEnum.ORDER_STATUS_UPDATED_EVENT,
+            {
+                orderId: result.id,
+                status: result.status,
+            },
+        );
+    } else if (status === OrderStatus.CANCELLED) {
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.CHEF,
+            tenantId,
+            ChefSocketEventEnum.ORDER_CANCELLED_EVENT,
+            {
+                orderId: result.id,
+                cancelledBy: user.id,
+            },
+        );
+
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.WAITER,
+            tenantId,
+            WaiterSocketEventEnum.ORDER_CANCELLED_EVENT,
+            {
+                orderId: result.id,
+                cancelledBy: user.id,
+            },
+        );
+
+        emitSocketEvent(
+            req,
+            SOCKET_NAMESPACES.CUSTOMER,
+            result.customerId,
+            CustomerSocketEventEnum.ORDER_STATUS_UPDATED_EVENT,
+            {
+                orderId: result.id,
+                status: result.status,
+            },
+        );
+    }
 
     sendResponse(res, {
         statusCode: 200,

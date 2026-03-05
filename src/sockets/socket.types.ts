@@ -43,6 +43,10 @@ export enum WaiterSocketEventEnum {
     ORDER_READY_EVENT = 'orderReady',
     // when order is cancelled by chef
     ORDER_CANCELLED_BY_CHEF_EVENT = 'orderCancelledByChef',
+    // when one waiter confirmesd an order
+    ORDER_CONFIRMATION_EVENT = 'orderConfirmation',
+    // when order is delivered
+    ORDER_DELIVERED_EVENT = 'orderDelivered',
 }
 
 export enum ChefSocketEventEnum {
@@ -53,11 +57,13 @@ export enum ChefSocketEventEnum {
     // when there is an error in socket
     SOCKET_ERROR_EVENT = 'socketError',
     // when user places an order
-    ORDER_PLACED_EVENT = 'orderPlaced',
+    ORDER_CONFIRMED_EVENT = 'orderConfirmed',
     // when order is in progress
     ORDER_IN_PROGRESS_EVENT = 'orderInProgress',
     // when user cancels an order
     ORDER_CANCELLED_EVENT = 'orderCancelled',
+    // when order is delivered
+    ORDER_DELIVERED_EVENT = 'orderDelivered',
 }
 export enum CustomerSocketEventEnum {
     // once user is ready to go

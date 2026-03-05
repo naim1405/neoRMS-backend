@@ -5,6 +5,7 @@ const router = express.Router();
 import { analyticsRoutes } from '../modules/analytics/analytics.routes';
 import { authRoutes } from '../modules/auth/auth.routes';
 import { couponRoutes } from '../modules/coupon/coupon.routes';
+import { paymentRoutes } from '../modules/payment/payment.routes';
 import { inventoryRoutes } from '../modules/inventory/inventory.routes';
 import { menuProductRoutes } from '../modules/menuProduct/menuProduct.routes';
 import { orderRoutes } from '../modules/order/order.routes';
@@ -50,6 +51,10 @@ const allRoutes = [
     {
         path: '/table',
         route: tableRoutes,
+    },
+    {
+        path: '/payment',
+        route: paymentRoutes,
     },
     {
         path: '/dummy',

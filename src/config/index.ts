@@ -20,4 +20,13 @@ export default {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
         callBackURL: process.env.GOOGLE_CALLBACK_URL as string,
     },
+    sslcommerz: {
+        storeId: process.env.SSL_STORE_ID as string,
+        storePassword: process.env.SSL_STORE_PASSWORD as string,
+        isLive: process.env.SSL_IS_LIVE === 'false',
+        successUrl: process.env.SSL_SUCCESS_URL as string,
+        failUrl: process.env.SSL_FAIL_URL as string,
+        cancelUrl: process.env.SSL_CANCEL_URL as string,
+        ipnUrl: process.env.SSL_IPN_URL as string,
+    },
 };

@@ -92,6 +92,7 @@ model Tenant {
     orders              Order[]
     reservations        Reservation[]
     coupons             Coupon[]
+    payments            Payment[]
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
@@ -161,6 +162,7 @@ model Customer {
 
     reservations Reservation[]
     couponUsages CouponUsage[]
+    payments     Payment[]
 
     @@index([userId])
 }
@@ -263,6 +265,7 @@ model Restaurant {
     orders        Order[]
     coupons       Coupon[]
     reservations  Reservation[]
+    payments      Payment[]
 
     @@index([tenantId])
     @@index([ownerId])
@@ -557,10 +560,11 @@ model Order {
     coupon      Coupon?      @relation(fields: [couponId], references: [id])
     couponId    String?
     couponUsage CouponUsage?
+    payment     Payment?
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt
-    lastUpdatedBy String?
+    lastUpdatedBy String?  
     isDeleted     Boolean  @default(false)
     deletedBy     String?
 
@@ -673,4 +677,38 @@ model CouponUsage {
     @@unique([couponId, customerId, orderId])
     @@index([couponId])
     @@index([customerId])
+}
+
+// Payment model
+model Payment {
+    id            String        @id @default(uuid())
+    transactionId String?       @unique 
+    amount        Float
+    currency      Currency
+    method        PaymentMethod
+    status        PaymentStatus @default(PENDING)
+    gatewayResponse Json?       
+    paidAt        DateTime?     
+    failureReason String?      
+
+    orderId      String     @unique
+    order        Order      @relation(fields: [orderId], references: [id])
+    customerId   String
+    customer     Customer   @relation(fields: [customerId], references: [userId])
+    restaurantId String
+    restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+    tenantId     String
+    tenant       Tenant     @relation(fields: [tenantId], references: [id])
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+    lastUpdatedBy String?
+    isDeleted     Boolean  @default(false)
+    deletedBy     String?
+
+    @@index([orderId])
+    @@index([customerId])
+    @@index([restaurantId])
+    @@index([tenantId])
+    @@index([transactionId])
 }

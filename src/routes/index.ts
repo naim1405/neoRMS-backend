@@ -12,6 +12,7 @@ import { restaurantRoutes } from '../modules/restaurant/restaurant.routes';
 import { userRoutes } from '../modules/user/user.routes';
 import { dummyRoutes } from '../modules/dummy/dummy.routes';
 import { tableRoutes } from '../modules/table/table.routes';
+import { reviewRoutes } from '../modules/review/review.routes';
 
 const allRoutes = [
     {
@@ -53,6 +54,10 @@ const allRoutes = [
     {
         path: '/dummy',
         route: dummyRoutes,
+    },
+    {
+        path: '/review',
+        route: reviewRoutes,
     },
 ];
 

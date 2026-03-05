@@ -336,12 +336,13 @@ const trackOrder = async (
  */
 const getOrderStep = (status: OrderStatus): number => {
     const steps: { [key in OrderStatus]: number } = {
+        [OrderStatus.CANCELLED]: 0,
         [OrderStatus.PENDING]: 1,
         [OrderStatus.CONFIRMED]: 2,
         [OrderStatus.PREPARING]: 3,
         [OrderStatus.READY]: 4,
         [OrderStatus.DELIVERED]: 5,
-        [OrderStatus.CANCELLED]: 0,
+        [OrderStatus.COMPLETED]: 6,
     };
     return steps[status] || 0;
 };

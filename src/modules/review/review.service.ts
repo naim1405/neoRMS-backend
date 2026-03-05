@@ -44,20 +44,6 @@ const getOrderBy = (sortBy?: string, sortOrder?: string) => {
     };
 };
 
-const getMenuItemIdsByOrder = async (orderId: string) => {
-    const orderItems = await prisma.orderItem.findMany({
-        where: {
-            orderId,
-            isDeleted: false,
-        },
-        select: {
-            menuItemId: true,
-        },
-    });
-
-    return [...new Set(orderItems.map(item => item.menuItemId))];
-};
-
 const createReview = async (
     user: JwtPayload,
     payload: ICreateReviewPayload,
@@ -90,67 +76,45 @@ const createReview = async (
         throw new ApiError(httpstatus.NOT_FOUND, 'Menu product not found');
     }
 
-    if (payload.orderId) {
-        const order = await prisma.order.findUnique({
-            where: {
-                id: payload.orderId,
-                customerId: user.id,
-                tenantId,
-                isDeleted: false,
-                status: OrderStatus.DELIVERED,
-            },
-            select: { id: true },
-        });
+    const order = await prisma.order.findUnique({
+        where: {
+            id: payload.orderId,
+            customerId: user.id,
+            tenantId,
+            isDeleted: false,
+            status: OrderStatus.DELIVERED,
+        },
+        select: { id: true },
+    });
 
-        if (!order) {
-            throw new ApiError(
-                httpstatus.BAD_REQUEST,
-                'You can only review delivered orders that belong to you',
-            );
-        }
+    if (!order) {
+        throw new ApiError(
+            httpstatus.BAD_REQUEST,
+            'You can only review delivered orders that belong to you',
+        );
+    }
 
-        const itemInOrder = await prisma.orderItem.findFirst({
-            where: {
-                orderId: order.id,
-                menuItemId: payload.menuProductId,
-                isDeleted: false,
-            },
-            select: { id: true },
-        });
+    const itemInOrder = await prisma.orderItem.findFirst({
+        where: {
+            orderId: order.id,
+            menuItemId: payload.menuProductId,
+            isDeleted: false,
+        },
+        select: { id: true },
+    });
 
-        if (!itemInOrder) {
-            throw new ApiError(
-                httpstatus.BAD_REQUEST,
-                'This menu item is not part of the provided order',
-            );
-        }
-    } else {
-        const hasDeliveredOrderForItem = await prisma.orderItem.findFirst({
-            where: {
-                menuItemId: payload.menuProductId,
-                isDeleted: false,
-                order: {
-                    customerId: user.id,
-                    tenantId,
-                    isDeleted: false,
-                    status: OrderStatus.DELIVERED,
-                },
-            },
-            select: { id: true },
-        });
-
-        if (!hasDeliveredOrderForItem) {
-            throw new ApiError(
-                httpstatus.BAD_REQUEST,
-                'You can only review menu items from your delivered orders',
-            );
-        }
+    if (!itemInOrder) {
+        throw new ApiError(
+            httpstatus.BAD_REQUEST,
+            'This menu item is not part of the provided order',
+        );
     }
 
     const existingReview = await prisma.review.findUnique({
         where: {
-            customerId_menuProductId: {
+            customerId_orderId_menuProductId: {
                 customerId: user.id,
+                orderId: payload.orderId,
                 menuProductId: payload.menuProductId,
             },
         },
@@ -164,6 +128,8 @@ const createReview = async (
             'Review already exists for this menu item',
         );
     }
+
+    // TODO: add sentiment
 
     if (existingReview && existingReview.isDeleted) {
         const updated = await prisma.review.update({
@@ -183,6 +149,7 @@ const createReview = async (
         const created = await prisma.review.create({
             data: {
                 customerId: user.id,
+                orderId: payload.orderId,
                 menuProductId: payload.menuProductId,
                 rating: payload.rating,
                 comment: payload.comment,
@@ -261,18 +228,11 @@ const getMyReviewsByOrder = async (
         throw new ApiError(httpstatus.NOT_FOUND, 'Order not found');
     }
 
-    const menuItemIds = await getMenuItemIdsByOrder(order.id);
-    if (!menuItemIds.length) {
-        return [];
-    }
-
     const reviews = await prisma.review.findMany({
         where: {
             customerId: user.id,
+            orderId: order.id,
             isDeleted: false,
-            menuProductId: {
-                in: menuItemIds,
-            },
             menuProduct: {
                 tenantId,
                 isDeleted: false,
@@ -326,7 +286,7 @@ const managementGetAllReviews = async (
     const { page, limit, skip, sortBy, sortOrder } =
         paginationHelpers.calculatePagination(options);
 
-    let orderMenuItemIds: string[] | undefined;
+    let orderIdFilter: string | undefined;
     if (filters.orderId) {
         const order = await prisma.order.findUnique({
             where: {
@@ -341,7 +301,7 @@ const managementGetAllReviews = async (
             throw new ApiError(httpstatus.NOT_FOUND, 'Order not found');
         }
 
-        orderMenuItemIds = await getMenuItemIdsByOrder(order.id);
+        orderIdFilter = order.id;
     }
 
     const whereClause = {
@@ -351,9 +311,7 @@ const managementGetAllReviews = async (
         ...(filters.menuProductId
             ? { menuProductId: filters.menuProductId }
             : {}),
-        ...(orderMenuItemIds
-            ? { menuProductId: { in: orderMenuItemIds } }
-            : {}),
+        ...(orderIdFilter ? { orderId: orderIdFilter } : {}),
         menuProduct: {
             tenantId,
             isDeleted: false,
@@ -504,18 +462,11 @@ const managementGetReviewsByOrder = async (
         throw new ApiError(httpstatus.NOT_FOUND, 'Order not found');
     }
 
-    const menuItemIds = await getMenuItemIdsByOrder(order.id);
-    if (!menuItemIds.length) {
-        return [];
-    }
-
     const reviews = await prisma.review.findMany({
         where: {
             customerId: order.customerId,
+            orderId: order.id,
             isDeleted: false,
-            menuProductId: {
-                in: menuItemIds,
-            },
             menuProduct: {
                 tenantId,
                 isDeleted: false,

@@ -1,6 +1,6 @@
 export interface ICreateReviewPayload {
     menuProductId: string;
-    orderId?: string;
+    orderId: string;
     rating: number;
     comment?: string;
 }

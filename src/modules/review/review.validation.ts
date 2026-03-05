@@ -3,7 +3,7 @@ import { z } from 'zod';
 const createReviewSchema = z.object({
     body: z.object({
         menuProductId: z.uuid('Invalid menu product ID'),
-        orderId: z.uuid('Invalid order ID').optional(),
+        orderId: z.uuid('Invalid order ID'),
         rating: z
             .number()
             .min(1, 'Rating must be at least 1')

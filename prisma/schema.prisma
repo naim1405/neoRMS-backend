@@ -312,11 +312,14 @@ model MenuProduct {
 model Review {
     id String @id @default(uuid())
 
-    rating  Float
-    comment String?
+    rating    Float
+    comment   String?
+    sentimetn String?
 
     customerId    String
     customer      Customer    @relation(fields: [customerId], references: [userId])
+    orderId       String
+    order         Order       @relation(fields: [orderId], references: [id])
     menuProductId String
     menuProduct   MenuProduct @relation(fields: [menuProductId], references: [id])
 
@@ -326,9 +329,10 @@ model Review {
     isDeleted     Boolean  @default(false)
     deletedBy     String?
 
-    @@unique([customerId, menuProductId])
+    @@unique([customerId, orderId, menuProductId])
     @@index([menuProductId])
     @@index([customerId])
+    @@index([orderId])
 }
 
 // Catalog of all possible ingredients (restaurant-agnostic)
@@ -557,6 +561,7 @@ model Order {
     coupon      Coupon?      @relation(fields: [couponId], references: [id])
     couponId    String?
     couponUsage CouponUsage?
+    reviews     Review[]
 
     createdAt     DateTime @default(now())
     updatedAt     DateTime @updatedAt

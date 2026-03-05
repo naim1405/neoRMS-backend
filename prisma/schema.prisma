@@ -314,7 +314,7 @@ model Review {
 
     rating    Float
     comment   String?
-    sentimetn String?
+    sentiment String?
 
     customerId    String
     customer      Customer    @relation(fields: [customerId], references: [userId])

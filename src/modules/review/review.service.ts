@@ -83,7 +83,7 @@ const createReview = async (
             customerId: user.id,
             tenantId,
             isDeleted: false,
-            status: OrderStatus.DELIVERED,
+            status: OrderStatus.COMPLETED,
         },
         select: { id: true },
     });

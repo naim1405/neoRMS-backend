@@ -9,83 +9,83 @@ import { reviewValidation } from './review.validation';
 const router = express.Router();
 
 router.post(
-	'/',
-	verifyJwt(UserRole.CUSTOMER),
-	verifyTenantAccess,
-	validateRequest(reviewValidation.createReviewSchema),
-	reviewController.createReview,
+    '/',
+    verifyJwt(UserRole.CUSTOMER),
+    verifyTenantAccess,
+    validateRequest(reviewValidation.createReviewSchema),
+    reviewController.createReview,
 );
 
 router.get(
-	'/my',
-	verifyJwt(UserRole.CUSTOMER),
-	verifyTenantAccess,
-	validateRequest(reviewValidation.getMyReviewsSchema),
-	reviewController.getMyReviews,
+    '/my',
+    verifyJwt(UserRole.CUSTOMER),
+    verifyTenantAccess,
+    validateRequest(reviewValidation.getMyReviewsSchema),
+    reviewController.getMyReviews,
 );
 
 router.get(
-	'/my/order/:orderId',
-	verifyJwt(UserRole.CUSTOMER),
-	verifyTenantAccess,
-	validateRequest(reviewValidation.getReviewByOrderSchema),
-	reviewController.getMyReviewsByOrder,
+    '/my/order/:orderId',
+    verifyJwt(UserRole.CUSTOMER),
+    verifyTenantAccess,
+    validateRequest(reviewValidation.getReviewByOrderSchema),
+    reviewController.getMyReviewsByOrder,
 );
 
 router.get(
-	'/my/menu-product/:menuProductId',
-	verifyJwt(UserRole.CUSTOMER),
-	verifyTenantAccess,
-	validateRequest(reviewValidation.getReviewByMenuProductSchema),
-	reviewController.getMyReviewsByMenuProduct,
+    '/my/menu-product/:menuProductId',
+    verifyJwt(UserRole.CUSTOMER),
+    verifyTenantAccess,
+    validateRequest(reviewValidation.getReviewByMenuProductSchema),
+    reviewController.getMyReviewsByMenuProduct,
 );
 
 router.get(
-	'/management',
-	verifyJwt(UserRole.OWNER, UserRole.MANAGER),
-	verifyTenantAccess,
-	validateRequest(reviewValidation.managementGetAllReviewsSchema),
-	reviewController.managementGetAllReviews,
+    '/management',
+    verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
+    validateRequest(reviewValidation.managementGetAllReviewsSchema),
+    reviewController.managementGetAllReviews,
 );
 
 router.get(
-	'/management/customer/:customerId',
-	verifyJwt(UserRole.OWNER, UserRole.MANAGER),
-	verifyTenantAccess,
-	validateRequest(reviewValidation.managementGetByCustomerSchema),
-	reviewController.managementGetReviewsByCustomer,
+    '/management/customer/:customerId',
+    verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
+    validateRequest(reviewValidation.managementGetByCustomerSchema),
+    reviewController.managementGetReviewsByCustomer,
 );
 
 router.get(
-	'/management/menu-product/:menuProductId',
-	verifyJwt(UserRole.OWNER, UserRole.MANAGER),
-	verifyTenantAccess,
-	validateRequest(reviewValidation.managementGetByMenuProductSchema),
-	reviewController.managementGetReviewsByMenuProduct,
+    '/management/menu-product/:menuProductId',
+    verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
+    validateRequest(reviewValidation.managementGetByMenuProductSchema),
+    reviewController.managementGetReviewsByMenuProduct,
 );
 
 router.get(
-	'/management/order/:orderId',
-	verifyJwt(UserRole.OWNER, UserRole.MANAGER),
-	verifyTenantAccess,
-	validateRequest(reviewValidation.managementGetByOrderSchema),
-	reviewController.managementGetReviewsByOrder,
+    '/management/order/:orderId',
+    verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
+    validateRequest(reviewValidation.managementGetByOrderSchema),
+    reviewController.managementGetReviewsByOrder,
 );
 
 router.get(
-	'/management/:reviewId',
-	verifyJwt(UserRole.OWNER, UserRole.MANAGER),
-	verifyTenantAccess,
-	validateRequest(reviewValidation.managementGetSingleReviewSchema),
-	reviewController.managementGetReviewById,
+    '/management/:reviewId',
+    verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
+    validateRequest(reviewValidation.managementGetSingleReviewSchema),
+    reviewController.managementGetReviewById,
 );
 
 router.delete(
-	'/management/:reviewId',
-	verifyJwt(UserRole.OWNER, UserRole.MANAGER),
-	verifyTenantAccess,
-	validateRequest(reviewValidation.managementDeleteReviewSchema),
-	reviewController.managementDeleteReview,
+    '/management/:reviewId',
+    verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
+    validateRequest(reviewValidation.managementDeleteReviewSchema),
+    reviewController.managementDeleteReview,
 );
 
 export const reviewRoutes = router;

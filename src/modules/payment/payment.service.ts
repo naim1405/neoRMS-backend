@@ -102,6 +102,19 @@ const initPayment = async (payload: IInitPayment, user: JwtPayload) => {
         },
     });
 
+    // Sandbox won't trigger IPN automatically, so simulate it directly
+    const ipnData = {
+        status: 'VALID',
+        tran_date: new Date().toISOString(),
+        tran_id: order.id,
+        val_id: `sandbox_val_${order.id}`,
+        amount: order.totalPrice,
+        store_amount: order.totalPrice,
+        risk_level: '0',
+        risk_title: 'Safe',
+    };
+    await postIPN(ipnData);
+
     return { gatewayUrl };
 };
 

@@ -4,11 +4,12 @@ import prisma from '../../utils/prisma';
 import { JwtPayload } from '../../types/jwt.types';
 import {
     ICreateReviewPayload,
+    IManagementAnalyzeByMenuInput,
     IManagementReviewFilters,
     IReviewPaginationOptions,
 } from './review.types';
 import { paginationHelpers } from '../../utils/pagination';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { aiService } from '../aiService';
 
 const reviewInclude = {
@@ -483,6 +484,54 @@ const managementGetReviewsByOrder = async (
     return reviews;
 };
 
+const managementAnalyzeByMenu = async (
+    payload: IManagementAnalyzeByMenuInput,
+    tenantId: string,
+) => {
+    const createdAt: Prisma.DateTimeFilter = {};
+
+    if (payload.startDate) {
+        createdAt.gte = new Date(payload.startDate);
+    }
+
+    if (payload.endDate) {
+        const end = new Date(payload.endDate);
+        end.setHours(23, 59, 59, 999);
+        createdAt.lte = end;
+    }
+
+    if (createdAt.gte && createdAt.lte && createdAt.gte > createdAt.lte) {
+        throw new ApiError(
+            httpstatus.BAD_REQUEST,
+            'startDate cannot be after endDate',
+        );
+    }
+
+    const whereConditions: Prisma.ReviewWhereInput = {
+        menuProductId: payload.menuId,
+        isDeleted: false,
+        menuProduct: {
+            tenantId,
+            isDeleted: false,
+        },
+        ...(Object.keys(createdAt).length ? { createdAt } : {}),
+    };
+
+    const reviews = await prisma.review.findMany({
+        where: whereConditions,
+        select: {
+            comment: true,
+        },
+    });
+
+    const comments: string[] = reviews
+        .map(review => review.comment)
+        .filter((comment): comment is string => !!comment?.trim());
+
+    const analysis = await aiService.review_analyzer(comments);
+    return analysis;
+};
+
 const managementGetReviewById = async (reviewId: string, tenantId: string) => {
     const review = await prisma.review.findFirst({
         where: {
@@ -546,6 +595,7 @@ export const reviewService = {
     managementGetReviewsByCustomer,
     managementGetReviewsByMenuProduct,
     managementGetReviewsByOrder,
+    managementAnalyzeByMenu,
     managementGetReviewById,
     managementDeleteReview,
 };

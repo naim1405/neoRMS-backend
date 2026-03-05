@@ -7,6 +7,7 @@ import { reviewService } from './review.service';
 import { paginationFields } from '../../const';
 import {
     ICreateReviewPayload,
+    IManagementAnalyzeByMenuInput,
     IManagementReviewFilters,
     IReviewPaginationOptions,
 } from './review.types';
@@ -164,6 +165,26 @@ const managementGetReviewsByOrder = catchAsync(async (req: any, res: any) => {
     });
 });
 
+const managementAnalyzeByMenu = catchAsync(async (req: any, res: any) => {
+    const analyzerInput: IManagementAnalyzeByMenuInput = {
+        menuId: req.params.menuId as string,
+        startDate: req.query.startDate as string | undefined,
+        endDate: req.query.endDate as string | undefined,
+    };
+
+    const result = await reviewService.managementAnalyzeByMenu(
+        analyzerInput,
+        req.tenantId as string,
+    );
+
+    sendResponse(res, {
+        statusCode: httpstatus.OK,
+        success: true,
+        message: 'Menu review analysis fetched successfully',
+        data: result,
+    });
+});
+
 const managementGetReviewById = catchAsync(async (req: any, res: any) => {
     const result = await reviewService.managementGetReviewById(
         req.params.reviewId as string,
@@ -202,6 +223,7 @@ export const reviewController = {
     managementGetReviewsByCustomer,
     managementGetReviewsByMenuProduct,
     managementGetReviewsByOrder,
+    managementAnalyzeByMenu,
     managementGetReviewById,
     managementDeleteReview,
 };

@@ -73,6 +73,14 @@ router.get(
 );
 
 router.get(
+    '/management/analyzer/:menuId',
+    verifyJwt(UserRole.OWNER, UserRole.MANAGER),
+    verifyTenantAccess,
+    validateRequest(reviewValidation.managementAnalyzeByMenuSchema),
+    reviewController.managementAnalyzeByMenu,
+);
+
+router.get(
     '/management/:reviewId',
     verifyJwt(UserRole.OWNER, UserRole.MANAGER),
     verifyTenantAccess,

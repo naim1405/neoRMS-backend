@@ -68,6 +68,16 @@ const managementGetByOrderSchema = z.object({
     }),
 });
 
+const managementAnalyzeByMenuSchema = z.object({
+    params: z.object({
+        menuId: z.uuid('Invalid menu ID'),
+    }),
+    query: z.object({
+        startDate: z.coerce.date('Invalid startDate').optional(),
+        endDate: z.coerce.date('Invalid endDate').optional(),
+    }),
+});
+
 const managementGetSingleReviewSchema = z.object({
     params: z.object({
         reviewId: z.uuid('Invalid review ID'),
@@ -89,6 +99,7 @@ export const reviewValidation = {
     managementGetByCustomerSchema,
     managementGetByMenuProductSchema,
     managementGetByOrderSchema,
+    managementAnalyzeByMenuSchema,
     managementGetSingleReviewSchema,
     managementDeleteReviewSchema,
 };

@@ -18,3 +18,9 @@ export interface IManagementReviewFilters {
     menuProductId?: string;
     orderId?: string;
 }
+
+export interface IManagementAnalyzeByMenuInput {
+    menuId: string;
+    startDate?: string;
+    endDate?: string;
+}

@@ -15,4 +15,6 @@ router.post('/order-confirmed', dummyController.waiterConfirmOrder);
 
 router.post('/order-accepted', dummyController.chefAcceptOrder);
 
+router.post('/ai-sync', dummyController.syncAiDate);
+
 export const dummyRoutes = router;

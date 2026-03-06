@@ -3,6 +3,13 @@ const bcrypt = require("bcrypt");
 
 const prisma = new PrismaClient();
 
+const makeUuid = (prefix, index) => {
+    const suffix = index.toString(16).padStart(12, "0");
+    return `${prefix}-0000-4000-8000-${suffix}`;
+};
+
+const roundMoney = (value) => Number(value.toFixed(2));
+
 async function main() {
     const passwordHash = await bcrypt.hash("Pass@123", 10);
 
@@ -34,6 +41,13 @@ async function main() {
             tomato: "55555555-5555-5555-5555-555555555554",
             cheese: "55555555-5555-5555-5555-555555555555",
             colaSyrup: "55555555-5555-5555-5555-555555555556",
+            beef: "55555555-5555-5555-5555-555555555557",
+            flour: "55555555-5555-5555-5555-555555555558",
+            shrimp: "55555555-5555-5555-5555-555555555559",
+            milk: "55555555-5555-5555-5555-55555555555a",
+            potato: "55555555-5555-5555-5555-55555555555b",
+            coffeeBeans: "55555555-5555-5555-5555-55555555555c",
+            mango: "55555555-5555-5555-5555-55555555555d",
         },
         inventory: {
             chicken: "66666666-6666-6666-6666-666666666661",
@@ -42,12 +56,25 @@ async function main() {
             tomato: "66666666-6666-6666-6666-666666666664",
             cheese: "66666666-6666-6666-6666-666666666665",
             colaSyrup: "66666666-6666-6666-6666-666666666666",
+            beef: "66666666-6666-6666-6666-666666666667",
+            flour: "66666666-6666-6666-6666-666666666668",
+            shrimp: "66666666-6666-6666-6666-666666666669",
+            milk: "66666666-6666-6666-6666-66666666666a",
+            potato: "66666666-6666-6666-6666-66666666666b",
+            coffeeBeans: "66666666-6666-6666-6666-66666666666c",
+            mango: "66666666-6666-6666-6666-66666666666d",
         },
         menuProducts: {
             grilledChicken: "77777777-7777-7777-7777-777777777771",
             vegSalad: "77777777-7777-7777-7777-777777777772",
             chocoCake: "77777777-7777-7777-7777-777777777773",
             cola: "77777777-7777-7777-7777-777777777774",
+            beefBurger: "77777777-7777-7777-7777-777777777775",
+            margheritaPizza: "77777777-7777-7777-7777-777777777776",
+            shrimpPasta: "77777777-7777-7777-7777-777777777777",
+            mangoSmoothie: "77777777-7777-7777-7777-777777777778",
+            icedLatte: "77777777-7777-7777-7777-777777777779",
+            garlicFries: "77777777-7777-7777-7777-77777777777a",
         },
         menuIngredients: {
             grilledChickenChicken: "88888888-8888-8888-8888-888888888881",
@@ -56,17 +83,47 @@ async function main() {
             saladTomato: "88888888-8888-8888-8888-888888888884",
             cakeCheese: "88888888-8888-8888-8888-888888888885",
             colaSyrup: "88888888-8888-8888-8888-888888888886",
+            burgerBeef: "88888888-8888-8888-8888-888888888887",
+            burgerCheese: "88888888-8888-8888-8888-888888888888",
+            pizzaFlour: "88888888-8888-8888-8888-888888888889",
+            pizzaCheese: "88888888-8888-8888-8888-88888888888a",
+            pastaShrimp: "88888888-8888-8888-8888-88888888888b",
+            pastaTomato: "88888888-8888-8888-8888-88888888888c",
+            smoothieMango: "88888888-8888-8888-8888-88888888888d",
+            smoothieMilk: "88888888-8888-8888-8888-88888888888e",
+            latteCoffee: "88888888-8888-8888-8888-88888888888f",
+            latteMilk: "88888888-8888-8888-8888-888888888890",
+            friesPotato: "88888888-8888-8888-8888-888888888891",
+            friesCheese: "88888888-8888-8888-8888-888888888892",
         },
         variants: {
             chickenSmall: "99999999-9999-9999-9999-999999999991",
             chickenLarge: "99999999-9999-9999-9999-999999999992",
             colaMedium: "99999999-9999-9999-9999-999999999993",
             colaLarge: "99999999-9999-9999-9999-999999999994",
+            burgerSmall: "99999999-9999-9999-9999-999999999995",
+            burgerLarge: "99999999-9999-9999-9999-999999999996",
+            pizzaMedium: "99999999-9999-9999-9999-999999999997",
+            pizzaFamily: "99999999-9999-9999-9999-999999999998",
+            pastaSmall: "99999999-9999-9999-9999-999999999999",
+            pastaLarge: "99999999-9999-9999-9999-99999999999a",
+            smoothieMedium: "99999999-9999-9999-9999-99999999999b",
+            smoothieLarge: "99999999-9999-9999-9999-99999999999c",
+            latteSmall: "99999999-9999-9999-9999-99999999999d",
+            latteLarge: "99999999-9999-9999-9999-99999999999e",
+            friesSmall: "99999999-9999-9999-9999-99999999999f",
+            friesLarge: "99999999-9999-9999-9999-9999999999a0",
         },
         addons: {
             extraCheese: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
             extraSauce: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2",
             lemonSlice: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3",
+            burgerPatty: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4",
+            pizzaOlives: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5",
+            pastaCheese: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6",
+            smoothieProtein: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7",
+            latteExtraShot: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa8",
+            friesDip: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa9",
         },
         tables: {
             t1: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1",
@@ -317,6 +374,13 @@ async function main() {
                 { id: ids.ingredients.tomato, name: "Tomato", unit: "KILOGRAM", lastUpdatedBy: ids.users.chef },
                 { id: ids.ingredients.cheese, name: "Cheddar Cheese", unit: "GRAM", lastUpdatedBy: ids.users.chef },
                 { id: ids.ingredients.colaSyrup, name: "Cola Syrup", unit: "LITER", lastUpdatedBy: ids.users.chef },
+                { id: ids.ingredients.beef, name: "Minced Beef", unit: "KILOGRAM", lastUpdatedBy: ids.users.chef },
+                { id: ids.ingredients.flour, name: "Pizza Flour", unit: "KILOGRAM", lastUpdatedBy: ids.users.chef },
+                { id: ids.ingredients.shrimp, name: "Shrimp", unit: "KILOGRAM", lastUpdatedBy: ids.users.chef },
+                { id: ids.ingredients.milk, name: "Fresh Milk", unit: "LITER", lastUpdatedBy: ids.users.chef },
+                { id: ids.ingredients.potato, name: "Potato", unit: "KILOGRAM", lastUpdatedBy: ids.users.chef },
+                { id: ids.ingredients.coffeeBeans, name: "Coffee Beans", unit: "GRAM", lastUpdatedBy: ids.users.chef },
+                { id: ids.ingredients.mango, name: "Mango Pulp", unit: "LITER", lastUpdatedBy: ids.users.chef },
             ],
         });
 
@@ -373,6 +437,69 @@ async function main() {
                     thresholdQuantity: 5,
                     restaurantId: ids.restaurant,
                     ingredientId: ids.ingredients.colaSyrup,
+                    tenantId: ids.tenant,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.inventory.beef,
+                    availableQuantity: 26,
+                    thresholdQuantity: 8,
+                    restaurantId: ids.restaurant,
+                    ingredientId: ids.ingredients.beef,
+                    tenantId: ids.tenant,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.inventory.flour,
+                    availableQuantity: 40,
+                    thresholdQuantity: 10,
+                    restaurantId: ids.restaurant,
+                    ingredientId: ids.ingredients.flour,
+                    tenantId: ids.tenant,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.inventory.shrimp,
+                    availableQuantity: 18,
+                    thresholdQuantity: 6,
+                    restaurantId: ids.restaurant,
+                    ingredientId: ids.ingredients.shrimp,
+                    tenantId: ids.tenant,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.inventory.milk,
+                    availableQuantity: 35,
+                    thresholdQuantity: 8,
+                    restaurantId: ids.restaurant,
+                    ingredientId: ids.ingredients.milk,
+                    tenantId: ids.tenant,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.inventory.potato,
+                    availableQuantity: 55,
+                    thresholdQuantity: 15,
+                    restaurantId: ids.restaurant,
+                    ingredientId: ids.ingredients.potato,
+                    tenantId: ids.tenant,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.inventory.coffeeBeans,
+                    availableQuantity: 9500,
+                    thresholdQuantity: 2200,
+                    restaurantId: ids.restaurant,
+                    ingredientId: ids.ingredients.coffeeBeans,
+                    tenantId: ids.tenant,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.inventory.mango,
+                    availableQuantity: 14,
+                    thresholdQuantity: 4,
+                    restaurantId: ids.restaurant,
+                    ingredientId: ids.ingredients.mango,
                     tenantId: ids.tenant,
                     lastUpdatedBy: ids.users.chef,
                 },
@@ -452,6 +579,108 @@ async function main() {
                     images: ["https://images.unsplash.com/photo-1622483767028-3f66f32aef97"],
                     lastUpdatedBy: ids.users.chef,
                 },
+                {
+                    id: ids.menuProducts.beefBurger,
+                    restaurantId: ids.restaurant,
+                    tenantId: ids.tenant,
+                    productTitle: "Smoky Beef Burger",
+                    productDescription: "Juicy beef patty burger with house sauce.",
+                    estimatedCookingTime: 15,
+                    userRating: 4.5,
+                    aiRating: 4.4,
+                    status: "AVAILABLE",
+                    priceCurrency: "BDT",
+                    basePrice: null,
+                    category: "MAIN_COURSE",
+                    dietaryTags: ["HALAL"],
+                    images: ["https://images.unsplash.com/photo-1568901346375-23c9450c58cd"],
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuProducts.margheritaPizza,
+                    restaurantId: ids.restaurant,
+                    tenantId: ids.tenant,
+                    productTitle: "Margherita Pizza",
+                    productDescription: "Stone baked pizza with tomato and cheese.",
+                    estimatedCookingTime: 20,
+                    userRating: 4.6,
+                    aiRating: 4.5,
+                    status: "AVAILABLE",
+                    priceCurrency: "BDT",
+                    basePrice: null,
+                    category: "MAIN_COURSE",
+                    dietaryTags: ["VEGETARIAN"],
+                    images: ["https://images.unsplash.com/photo-1574071318508-1cdbab80d002"],
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuProducts.shrimpPasta,
+                    restaurantId: ids.restaurant,
+                    tenantId: ids.tenant,
+                    productTitle: "Creamy Shrimp Pasta",
+                    productDescription: "Penne pasta with shrimp in creamy tomato sauce.",
+                    estimatedCookingTime: 17,
+                    userRating: 4.4,
+                    aiRating: 4.3,
+                    status: "AVAILABLE",
+                    priceCurrency: "BDT",
+                    basePrice: null,
+                    category: "MAIN_COURSE",
+                    dietaryTags: ["NUT_FREE"],
+                    images: ["https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9"],
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuProducts.mangoSmoothie,
+                    restaurantId: ids.restaurant,
+                    tenantId: ids.tenant,
+                    productTitle: "Mango Smoothie",
+                    productDescription: "Fresh mango blend with chilled milk.",
+                    estimatedCookingTime: 3,
+                    userRating: 4.2,
+                    aiRating: 4.1,
+                    status: "AVAILABLE",
+                    priceCurrency: "BDT",
+                    basePrice: null,
+                    category: "BEVERAGE",
+                    dietaryTags: ["GLUTEN_FREE", "NUT_FREE"],
+                    images: ["https://images.unsplash.com/photo-1623065422902-30a2d299bbe4"],
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuProducts.icedLatte,
+                    restaurantId: ids.restaurant,
+                    tenantId: ids.tenant,
+                    productTitle: "Iced Caffe Latte",
+                    productDescription: "Cold brew coffee with fresh milk and ice.",
+                    estimatedCookingTime: 2,
+                    userRating: 4.1,
+                    aiRating: 4.0,
+                    status: "AVAILABLE",
+                    priceCurrency: "BDT",
+                    basePrice: null,
+                    category: "BEVERAGE",
+                    dietaryTags: ["VEGETARIAN", "GLUTEN_FREE"],
+                    images: ["https://images.unsplash.com/photo-1461023058943-07fcbe16d735"],
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuProducts.garlicFries,
+                    restaurantId: ids.restaurant,
+                    tenantId: ids.tenant,
+                    productTitle: "Garlic Parmesan Fries",
+                    productDescription: "Crispy fries tossed in garlic parmesan seasoning.",
+                    estimatedCookingTime: 9,
+                    userRating: 4.3,
+                    aiRating: 4.2,
+                    status: "AVAILABLE",
+                    priceCurrency: "BDT",
+                    basePrice: null,
+                    category: "SIDE",
+                    dietaryTags: ["VEGETARIAN"],
+                    images: ["https://images.unsplash.com/photo-1630384060421-cb20d0e0649d"],
+                    lastUpdatedBy: ids.users.chef,
+                },
             ],
         });
 
@@ -499,6 +728,90 @@ async function main() {
                     ingredientId: ids.ingredients.colaSyrup,
                     lastUpdatedBy: ids.users.chef,
                 },
+                {
+                    id: ids.menuIngredients.burgerBeef,
+                    requiredQuantity: 0.2,
+                    menuProductId: ids.menuProducts.beefBurger,
+                    ingredientId: ids.ingredients.beef,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuIngredients.burgerCheese,
+                    requiredQuantity: 35,
+                    menuProductId: ids.menuProducts.beefBurger,
+                    ingredientId: ids.ingredients.cheese,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuIngredients.pizzaFlour,
+                    requiredQuantity: 0.18,
+                    menuProductId: ids.menuProducts.margheritaPizza,
+                    ingredientId: ids.ingredients.flour,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuIngredients.pizzaCheese,
+                    requiredQuantity: 120,
+                    menuProductId: ids.menuProducts.margheritaPizza,
+                    ingredientId: ids.ingredients.cheese,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuIngredients.pastaShrimp,
+                    requiredQuantity: 0.15,
+                    menuProductId: ids.menuProducts.shrimpPasta,
+                    ingredientId: ids.ingredients.shrimp,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuIngredients.pastaTomato,
+                    requiredQuantity: 0.08,
+                    menuProductId: ids.menuProducts.shrimpPasta,
+                    ingredientId: ids.ingredients.tomato,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuIngredients.smoothieMango,
+                    requiredQuantity: 0.22,
+                    menuProductId: ids.menuProducts.mangoSmoothie,
+                    ingredientId: ids.ingredients.mango,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuIngredients.smoothieMilk,
+                    requiredQuantity: 0.16,
+                    menuProductId: ids.menuProducts.mangoSmoothie,
+                    ingredientId: ids.ingredients.milk,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuIngredients.latteCoffee,
+                    requiredQuantity: 20,
+                    menuProductId: ids.menuProducts.icedLatte,
+                    ingredientId: ids.ingredients.coffeeBeans,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuIngredients.latteMilk,
+                    requiredQuantity: 0.2,
+                    menuProductId: ids.menuProducts.icedLatte,
+                    ingredientId: ids.ingredients.milk,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuIngredients.friesPotato,
+                    requiredQuantity: 0.22,
+                    menuProductId: ids.menuProducts.garlicFries,
+                    ingredientId: ids.ingredients.potato,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.menuIngredients.friesCheese,
+                    requiredQuantity: 30,
+                    menuProductId: ids.menuProducts.garlicFries,
+                    ingredientId: ids.ingredients.cheese,
+                    lastUpdatedBy: ids.users.chef,
+                },
             ],
         });
 
@@ -536,6 +849,102 @@ async function main() {
                     menuProductId: ids.menuProducts.cola,
                     lastUpdatedBy: ids.users.chef,
                 },
+                {
+                    id: ids.variants.burgerSmall,
+                    type: "SMALL",
+                    price: 320,
+                    discount: 0,
+                    menuProductId: ids.menuProducts.beefBurger,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.variants.burgerLarge,
+                    type: "LARGE",
+                    price: 460,
+                    discount: 25,
+                    menuProductId: ids.menuProducts.beefBurger,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.variants.pizzaMedium,
+                    type: "MEDIUM",
+                    price: 520,
+                    discount: 0,
+                    menuProductId: ids.menuProducts.margheritaPizza,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.variants.pizzaFamily,
+                    type: "FAMILY",
+                    price: 790,
+                    discount: 40,
+                    menuProductId: ids.menuProducts.margheritaPizza,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.variants.pastaSmall,
+                    type: "SMALL",
+                    price: 360,
+                    discount: 0,
+                    menuProductId: ids.menuProducts.shrimpPasta,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.variants.pastaLarge,
+                    type: "LARGE",
+                    price: 520,
+                    discount: 30,
+                    menuProductId: ids.menuProducts.shrimpPasta,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.variants.smoothieMedium,
+                    type: "MEDIUM",
+                    price: 180,
+                    discount: 0,
+                    menuProductId: ids.menuProducts.mangoSmoothie,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.variants.smoothieLarge,
+                    type: "LARGE",
+                    price: 240,
+                    discount: 20,
+                    menuProductId: ids.menuProducts.mangoSmoothie,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.variants.latteSmall,
+                    type: "SMALL",
+                    price: 170,
+                    discount: 0,
+                    menuProductId: ids.menuProducts.icedLatte,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.variants.latteLarge,
+                    type: "LARGE",
+                    price: 240,
+                    discount: 15,
+                    menuProductId: ids.menuProducts.icedLatte,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.variants.friesSmall,
+                    type: "SMALL",
+                    price: 160,
+                    discount: 0,
+                    menuProductId: ids.menuProducts.garlicFries,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.variants.friesLarge,
+                    type: "LARGE",
+                    price: 230,
+                    discount: 15,
+                    menuProductId: ids.menuProducts.garlicFries,
+                    lastUpdatedBy: ids.users.chef,
+                },
             ],
         });
 
@@ -560,6 +969,48 @@ async function main() {
                     name: "Lemon Slice",
                     price: 10,
                     menuProductId: ids.menuProducts.cola,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.addons.burgerPatty,
+                    name: "Extra Patty",
+                    price: 120,
+                    menuProductId: ids.menuProducts.beefBurger,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.addons.pizzaOlives,
+                    name: "Black Olives",
+                    price: 60,
+                    menuProductId: ids.menuProducts.margheritaPizza,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.addons.pastaCheese,
+                    name: "Parmesan Topping",
+                    price: 50,
+                    menuProductId: ids.menuProducts.shrimpPasta,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.addons.smoothieProtein,
+                    name: "Protein Scoop",
+                    price: 70,
+                    menuProductId: ids.menuProducts.mangoSmoothie,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.addons.latteExtraShot,
+                    name: "Extra Espresso Shot",
+                    price: 45,
+                    menuProductId: ids.menuProducts.icedLatte,
+                    lastUpdatedBy: ids.users.chef,
+                },
+                {
+                    id: ids.addons.friesDip,
+                    name: "Cheese Dip",
+                    price: 35,
+                    menuProductId: ids.menuProducts.garlicFries,
                     lastUpdatedBy: ids.users.chef,
                 },
             ],
@@ -643,6 +1094,219 @@ async function main() {
             ],
         });
 
+        const customerCycle = [ids.users.customer1, ids.users.customer2, ids.users.customer3];
+        const orderTypeCycle = ["DINE_IN", "DELIVERY", "TAKEAWAY"];
+        const paymentMethodCycle = ["CARD", "MOBILE_PAYMENT", "CASH", "ONLINE_PAYMENT"];
+        const orderStatusCycle = ["COMPLETED", "DELIVERED", "READY", "CONFIRMED", "PREPARING", "PENDING", "CANCELLED"];
+
+        const menuCatalogForOrders = [
+            {
+                id: ids.menuProducts.grilledChicken,
+                title: "Grilled Chicken Bowl",
+                basePrice: 380,
+                variants: [
+                    { id: ids.variants.chickenSmall, type: "SMALL", price: 340, discount: 0 },
+                    { id: ids.variants.chickenLarge, type: "LARGE", price: 480, discount: 30 },
+                ],
+                addons: [
+                    { id: ids.addons.extraCheese, name: "Extra Cheese", price: 40 },
+                    { id: ids.addons.extraSauce, name: "Spicy Sauce", price: 20 },
+                ],
+            },
+            {
+                id: ids.menuProducts.vegSalad,
+                title: "Garden Veggie Salad",
+                basePrice: 220,
+                variants: [],
+                addons: [],
+            },
+            {
+                id: ids.menuProducts.chocoCake,
+                title: "Chocolate Cheese Cake",
+                basePrice: 280,
+                variants: [],
+                addons: [],
+            },
+            {
+                id: ids.menuProducts.cola,
+                title: "House Cola",
+                basePrice: 120,
+                variants: [
+                    { id: ids.variants.colaMedium, type: "MEDIUM", price: 110, discount: 0 },
+                    { id: ids.variants.colaLarge, type: "LARGE", price: 160, discount: 10 },
+                ],
+                addons: [{ id: ids.addons.lemonSlice, name: "Lemon Slice", price: 10 }],
+            },
+            {
+                id: ids.menuProducts.beefBurger,
+                title: "Smoky Beef Burger",
+                basePrice: 350,
+                variants: [
+                    { id: ids.variants.burgerSmall, type: "SMALL", price: 320, discount: 0 },
+                    { id: ids.variants.burgerLarge, type: "LARGE", price: 460, discount: 25 },
+                ],
+                addons: [{ id: ids.addons.burgerPatty, name: "Extra Patty", price: 120 }],
+            },
+            {
+                id: ids.menuProducts.margheritaPizza,
+                title: "Margherita Pizza",
+                basePrice: 550,
+                variants: [
+                    { id: ids.variants.pizzaMedium, type: "MEDIUM", price: 520, discount: 0 },
+                    { id: ids.variants.pizzaFamily, type: "FAMILY", price: 790, discount: 40 },
+                ],
+                addons: [{ id: ids.addons.pizzaOlives, name: "Black Olives", price: 60 }],
+            },
+            {
+                id: ids.menuProducts.shrimpPasta,
+                title: "Creamy Shrimp Pasta",
+                basePrice: 390,
+                variants: [
+                    { id: ids.variants.pastaSmall, type: "SMALL", price: 360, discount: 0 },
+                    { id: ids.variants.pastaLarge, type: "LARGE", price: 520, discount: 30 },
+                ],
+                addons: [{ id: ids.addons.pastaCheese, name: "Parmesan Topping", price: 50 }],
+            },
+            {
+                id: ids.menuProducts.mangoSmoothie,
+                title: "Mango Smoothie",
+                basePrice: 190,
+                variants: [
+                    { id: ids.variants.smoothieMedium, type: "MEDIUM", price: 180, discount: 0 },
+                    { id: ids.variants.smoothieLarge, type: "LARGE", price: 240, discount: 20 },
+                ],
+                addons: [{ id: ids.addons.smoothieProtein, name: "Protein Scoop", price: 70 }],
+            },
+            {
+                id: ids.menuProducts.icedLatte,
+                title: "Iced Caffe Latte",
+                basePrice: 180,
+                variants: [
+                    { id: ids.variants.latteSmall, type: "SMALL", price: 170, discount: 0 },
+                    { id: ids.variants.latteLarge, type: "LARGE", price: 240, discount: 15 },
+                ],
+                addons: [{ id: ids.addons.latteExtraShot, name: "Extra Espresso Shot", price: 45 }],
+            },
+            {
+                id: ids.menuProducts.garlicFries,
+                title: "Garlic Parmesan Fries",
+                basePrice: 170,
+                variants: [
+                    { id: ids.variants.friesSmall, type: "SMALL", price: 160, discount: 0 },
+                    { id: ids.variants.friesLarge, type: "LARGE", price: 230, discount: 15 },
+                ],
+                addons: [{ id: ids.addons.friesDip, name: "Cheese Dip", price: 35 }],
+            },
+        ];
+
+        const additionalOrders = [];
+        const additionalOrderItems = [];
+        const additionalOrderItemAddons = [];
+        const additionalPayments = [];
+        let addonSerial = 1;
+
+        for (let index = 1; index <= 96; index += 1) {
+            const orderId = makeUuid("d0d0d0d0", index);
+            const customerId = customerCycle[index % customerCycle.length];
+            const orderType = orderTypeCycle[index % orderTypeCycle.length];
+            const orderStatus = orderStatusCycle[index % orderStatusCycle.length];
+            const paymentMethod = paymentMethodCycle[index % paymentMethodCycle.length];
+
+            const tableId = orderType === "DINE_IN" ? [ids.tables.t1, ids.tables.t2, ids.tables.t3, ids.tables.t4][index % 4] : null;
+            const itemCount = 2 + (index % 3);
+
+            let orderTotal = 0;
+            for (let offset = 0; offset < itemCount; offset += 1) {
+                const menu = menuCatalogForOrders[(index + offset) % menuCatalogForOrders.length];
+                const quantity = 1 + ((index + offset) % 2);
+
+                let unitPrice = menu.basePrice;
+                let variantId = null;
+                let variantType = null;
+
+                if (menu.variants.length > 0) {
+                    const selectedVariant = menu.variants[(index + offset) % menu.variants.length];
+                    unitPrice = selectedVariant.price - (selectedVariant.discount || 0);
+                    variantId = selectedVariant.id;
+                    variantType = selectedVariant.type;
+                }
+
+                const orderItemId = makeUuid("e0e0e0e0", index * 10 + offset);
+
+                additionalOrderItems.push({
+                    id: orderItemId,
+                    name: menu.title,
+                    quantity,
+                    price: unitPrice,
+                    notes: (index + offset) % 8 === 0 ? "No chili flakes" : null,
+                    variantType,
+                    orderId,
+                    menuItemId: menu.id,
+                    variantId,
+                    lastUpdatedBy: index % 2 === 0 ? ids.users.waiter : ids.users.manager,
+                });
+
+                orderTotal += unitPrice * quantity;
+
+                if (menu.addons.length > 0 && (index + offset) % 5 === 0) {
+                    const addon = menu.addons[(index + offset) % menu.addons.length];
+                    additionalOrderItemAddons.push({
+                        id: makeUuid("f0f0f0f0", addonSerial),
+                        name: addon.name,
+                        price: addon.price,
+                        orderItemId,
+                        addonId: addon.id,
+                        lastUpdatedBy: ids.users.waiter,
+                    });
+                    addonSerial += 1;
+                    orderTotal += addon.price * quantity;
+                }
+            }
+
+            const resolvedPaymentStatus =
+                orderStatus === "CANCELLED" ? "REFUNDED" : ["PENDING", "CONFIRMED", "PREPARING", "READY"].includes(orderStatus) ? "PENDING" : "COMPLETED";
+
+            additionalOrders.push({
+                id: orderId,
+                status: orderStatus,
+                totalPrice: roundMoney(orderTotal),
+                paymentMethod,
+                paymentStatus: resolvedPaymentStatus,
+                notes: `Bulk mock order #${index}`,
+                estimatedDeliveryTimeInMinutes: 15 + (index % 26),
+                customerId,
+                restaurantId: ids.restaurant,
+                tenantId: ids.tenant,
+                tableId,
+                orderType,
+                couponId: null,
+                lastUpdatedBy: index % 2 === 0 ? ids.users.manager : ids.users.waiter,
+            });
+
+            additionalPayments.push({
+                id: makeUuid("13131314", index),
+                transactionId:
+                    paymentMethod === "CASH" || resolvedPaymentStatus === "PENDING"
+                        ? null
+                        : `TXN-BULK-${String(index).padStart(4, "0")}`,
+                amount: roundMoney(orderTotal),
+                currency: "BDT",
+                method: paymentMethod,
+                status: resolvedPaymentStatus,
+                gatewayResponse:
+                    resolvedPaymentStatus === "PENDING"
+                        ? null
+                        : { provider: paymentMethod === "ONLINE_PAYMENT" ? "sslcommerz" : "mock-gateway", ref: `bulk_${index}` },
+                paidAt: resolvedPaymentStatus === "PENDING" ? null : new Date(Date.UTC(2026, 2, 1 + (index % 20), 10 + (index % 10), index % 60)),
+                failureReason: resolvedPaymentStatus === "REFUNDED" ? "Order cancelled after online prepayment" : null,
+                orderId,
+                customerId,
+                restaurantId: ids.restaurant,
+                tenantId: ids.tenant,
+                lastUpdatedBy: ids.users.manager,
+            });
+        }
+
         await tx.order.createMany({
             data: [
                 {
@@ -709,6 +1373,7 @@ async function main() {
                     couponId: null,
                     lastUpdatedBy: ids.users.manager,
                 },
+                ...additionalOrders,
             ],
         });
 
@@ -786,6 +1451,7 @@ async function main() {
                     variantId: ids.variants.colaLarge,
                     lastUpdatedBy: ids.users.manager,
                 },
+                ...additionalOrderItems,
             ],
         });
 
@@ -815,6 +1481,7 @@ async function main() {
                     addonId: ids.addons.lemonSlice,
                     lastUpdatedBy: ids.users.manager,
                 },
+                ...additionalOrderItemAddons,
             ],
         });
 
@@ -901,6 +1568,7 @@ async function main() {
                     tenantId: ids.tenant,
                     lastUpdatedBy: ids.users.manager,
                 },
+                ...additionalPayments,
             ],
         });
 

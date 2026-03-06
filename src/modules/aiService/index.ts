@@ -73,8 +73,34 @@ async function recommendationEngine(data: string): Promise<string | null> {
     }
 }
 
+async function sendOrderData(orderData: any) {
+    try {
+        const re = await fetch(`${aiServiceUrl}/orders/import`, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+
+            method: 'POST',
+            body: JSON.stringify(orderData),
+        });
+        const resJson = await re.json();
+
+        if (!resJson.success) {
+            throw new Error(
+                `AI service error: ${resJson.error || 'Unknown error'}`,
+            );
+        }
+
+        return resJson;
+    } catch (e) {
+        console.error('Error in sentiment analysis:', e);
+        return null;
+    }
+}
+
 export const aiService = {
     sentimentAnalysis,
     review_analyzer,
     recommendationEngine,
+    sendOrderData,
 };

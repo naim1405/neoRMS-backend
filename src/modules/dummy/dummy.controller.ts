@@ -8,6 +8,8 @@ import {
 import sendResponse from '../../utils/ApiResponse';
 import catchAsync from '../../utils/catchAsync';
 import httpstatus from 'http-status';
+import prisma from '../../utils/prisma';
+import { aiService } from '../aiService';
 
 const customerPlaceOrder = catchAsync(async (req, res) => {
     const restaurantId = req.body.restaurantId;
@@ -162,6 +164,31 @@ const chefAcceptOrder = catchAsync(async (req, res) => {
     });
 });
 
+const syncAiDate = catchAsync(async (req, res) => {
+    const result = await prisma.order.findMany({
+        select: {
+            id: true,
+            totalPrice: true,
+            restaurantId: true,
+            items: {
+                select: {
+                    quantity: true,
+                    price: true,
+                    menuItemId: true,
+                },
+            },
+        },
+    });
+    const response = await aiService.sendOrderData(result);
+
+    sendResponse(res, {
+        statusCode: httpstatus.OK,
+        success: true,
+        message: 'order sent to ai',
+        data: response,
+    });
+});
+
 export const dummyController = {
     customerPlaceOrder,
     customerCancelOrder,
@@ -169,4 +196,5 @@ export const dummyController = {
     chefOrderReady,
     waiterConfirmOrder,
     chefAcceptOrder,
+    syncAiDate,
 };

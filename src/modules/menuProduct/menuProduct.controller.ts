@@ -2,6 +2,8 @@ import httpstatus from 'http-status';
 import sendResponse from '../../utils/ApiResponse';
 import catchAsync from '../../utils/catchAsync';
 import { menuProductService } from './menuProduct.service';
+import { IGetRecommendationPayload } from './menuProduct.types';
+import { JwtPayload } from '../../types/jwt.types';
 
 const createMenuProduct = catchAsync(async (req: any, res: any) => {
     const result = await menuProductService.createMenuProduct(
@@ -71,10 +73,27 @@ const getMenuProductById = catchAsync(async (req, res) => {
     });
 });
 
+const getRecommendation = catchAsync(async (req: any, res) => {
+    const tenantId = req.tenantId as string;
+    const result = await menuProductService.getRecommendation(
+        req.body as IGetRecommendationPayload,
+        tenantId,
+        req.user as JwtPayload,
+    );
+
+    sendResponse(res, {
+        statusCode: httpstatus.OK,
+        success: true,
+        message: 'Recommendation fetched successfully',
+        data: result,
+    });
+});
+
 export const menuProductController = {
     createMenuProduct,
     updateMenuProduct,
     deleteMenuProduct,
     getMenuProductsByRestaurant,
     getMenuProductById,
+    getRecommendation,
 };

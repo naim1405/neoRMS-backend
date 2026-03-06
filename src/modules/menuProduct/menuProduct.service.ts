@@ -1,7 +1,13 @@
 import httpstatus from 'http-status';
 import ApiError from '../../utils/ApiError';
 import prisma from '../../utils/prisma';
-import { ICreateMenuProduct, IUpdateMenuProduct } from './menuProduct.types';
+import {
+    ICreateMenuProduct,
+    IGetRecommendationPayload,
+    IUpdateMenuProduct,
+} from './menuProduct.types';
+import { JwtPayload } from '../../types/jwt.types';
+import { aiService } from '../aiService';
 
 const createMenuProduct = async (
     restaurantId: string,
@@ -130,10 +136,50 @@ const getMenuProductById = async (
     return menuProduct;
 };
 
+const getRecommendation = async (
+    payload: IGetRecommendationPayload,
+    tenantId: string,
+    user: JwtPayload,
+) => {
+    const restaurant = await prisma.restaurant.findUnique({
+        where: { tenantId: tenantId, isDeleted: false },
+    });
+    if (!restaurant) {
+        throw new ApiError(httpstatus.NOT_FOUND, 'Restaurant not found');
+    }
+    const aiRecommendations = await aiService.getRecommendation({
+        already_ordered: payload.cartItems,
+        num_recommendations: 4,
+        restaurant_id: restaurant.id,
+    });
+
+    if (!aiRecommendations || !aiRecommendations?.recommendations) {
+        throw new ApiError(
+            httpstatus.INTERNAL_SERVER_ERROR,
+            'Failed to get recommendations',
+        );
+    }
+
+    const menuItems = await prisma.menuProduct.findMany({
+        where: {
+            id: { in: aiRecommendations.recommendations },
+            restaurantId: restaurant.id,
+            isDeleted: false,
+        },
+        include: {
+            variants: true,
+            addons: true,
+        },
+    });
+
+    return menuItems;
+};
+
 export const menuProductService = {
     createMenuProduct,
     updateMenuProduct,
     deleteMenuProduct,
     getMenuProductsByRestaurant,
     getMenuProductById,
+    getRecommendation,
 };

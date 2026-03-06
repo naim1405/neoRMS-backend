@@ -14,7 +14,7 @@ const createCouponSchema = z.object({
             minOrderAmount: z.number().int().nonnegative().optional(),
             maxDiscount: z.number().int().positive().optional(),
             perUserLimit: z.number().int().positive().optional(),
-            restaurantId: z.uuid().optional(),
+            restaurantId: z.string().min(1, 'Invalid restaurant ID').optional(),
         })
         .refine(data => new Date(data.validUntil) > new Date(data.validFrom), {
             message: 'validUntil must be after validFrom',
@@ -35,7 +35,7 @@ const updateCouponSchema = z.object({
         maxDiscount: z.number().int().positive().optional(),
         perUserLimit: z.number().int().positive().optional(),
         status: z.enum(CouponStatus).optional(),
-        restaurantId: z.uuid().optional(),
+        restaurantId: z.string().min(1, 'Invalid restaurant ID').optional(),
     }),
 });
 
@@ -46,7 +46,7 @@ const validateCouponSchema = z.object({
             .number()
             .int()
             .nonnegative('Order amount must be non-negative'),
-        restaurantId: z.uuid('Invalid restaurant ID'),
+        restaurantId: z.string().min(1, 'Invalid restaurant ID'),
     }),
 });
 

@@ -40,3 +40,7 @@ export interface IUpdateMenuProduct {
     dietaryTags?: DietaryTag[];
     images?: string[];
 }
+
+export interface IGetRecommendationPayload {
+    cartItems: string[];
+}

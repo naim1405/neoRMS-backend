@@ -15,6 +15,14 @@ router.get(
     menuProductController.getMenuProductById,
 );
 
+router.post(
+    '/recommendation',
+    verifyJwt(UserRole.CUSTOMER),
+    verifyTenantAccess,
+    validateRequest(menuProductValidation.getRecommendationSchema),
+    menuProductController.getRecommendation,
+);
+
 // Protected routes - MANAGER or OWNER only
 router.post(
     '/:restaurantId',

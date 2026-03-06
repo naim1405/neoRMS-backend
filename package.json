@@ -7,7 +7,11 @@
 		"dev": "ts-node-dev --watch src --respawn --transpile-only src/index.ts",
 		"build": "tsc",
 		"prisma:generate": "npx prisma generate",
-		"pris": "npx prisma migrate dev && npx prisma generate"
+		"pris": "npx prisma migrate dev && npx prisma generate",
+		"db:seed": "npx prisma db seed"
+	},
+	"prisma": {
+		"seed": "node prisma/seed.js"
 	},
 	"devDependencies": {
 		"@types/bcrypt": "^6.0.0",

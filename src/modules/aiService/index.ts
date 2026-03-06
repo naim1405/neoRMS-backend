@@ -49,7 +49,11 @@ async function review_analyzer(data: string[]) {
     }
 }
 
-async function recommendationEngine(data: string): Promise<string | null> {
+async function getRecommendation(data: {
+    already_ordered: string[];
+    num_recommendations: number;
+    restaurant_id: string;
+}) {
     try {
         const re = await fetch(`${aiServiceUrl}/recommend`, {
             headers: {
@@ -57,7 +61,7 @@ async function recommendationEngine(data: string): Promise<string | null> {
             },
 
             method: 'POST',
-            body: JSON.stringify({}),
+            body: JSON.stringify(data),
         });
         const resJson = await re.json();
 
@@ -66,7 +70,32 @@ async function recommendationEngine(data: string): Promise<string | null> {
                 `AI service error: ${resJson.error || 'Unknown error'}`,
             );
         }
-        return resJson.data.sentiment_name as string;
+        return resJson.data;
+    } catch (e) {
+        console.error('Error in sentiment analysis:', e);
+        return null;
+    }
+}
+
+async function sendOrderData(orderData: any) {
+    try {
+        const re = await fetch(`${aiServiceUrl}/orders/import`, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+
+            method: 'POST',
+            body: JSON.stringify(orderData),
+        });
+        const resJson = await re.json();
+
+        if (!resJson.success) {
+            throw new Error(
+                `AI service error: ${resJson.error || 'Unknown error'}`,
+            );
+        }
+
+        return resJson;
     } catch (e) {
         console.error('Error in sentiment analysis:', e);
         return null;
@@ -76,5 +105,6 @@ async function recommendationEngine(data: string): Promise<string | null> {
 export const aiService = {
     sentimentAnalysis,
     review_analyzer,
-    recommendationEngine,
+    getRecommendation,
+    sendOrderData,
 };

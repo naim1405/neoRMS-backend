@@ -53,7 +53,14 @@ const updateMenuProductSchema = z.object({
     }),
 });
 
+const getRecommendationSchema = z.object({
+    body: z.object({
+        cartItems: z.array(z.string()),
+    }),
+});
+
 export const menuProductValidation = {
     createMenuProductSchema,
     updateMenuProductSchema,
+    getRecommendationSchema,
 };

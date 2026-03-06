@@ -238,7 +238,7 @@ const updateOrderStatus = catchAsync(async (req: any, res) => {
             },
         );
     } else if (status === OrderStatus.DELIVERED) {
-        // emit chef and waiter socket event
+        // emit same delivered event for both DELIVERED and COMPLETED resulting states
         emitSocketEvent(
             req,
             SOCKET_NAMESPACES.CHEF,

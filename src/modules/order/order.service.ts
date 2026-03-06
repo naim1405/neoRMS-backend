@@ -474,12 +474,18 @@ const updateOrderStatus = async (
             );
         }
 
+        const finalStatus =
+            status === OrderStatus.DELIVERED &&
+            order.paymentMethod === 'CASH'
+                ? OrderStatus.COMPLETED
+                : status;
+
         const updatedOrder = await prisma.order.update({
             where: {
                 id: orderId,
                 tenantId: tenantId,
             },
-            data: { status },
+            data: { status: finalStatus },
             include: {
                 items: true,
             },
